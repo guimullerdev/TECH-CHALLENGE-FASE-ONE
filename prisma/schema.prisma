@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  document  String   @unique // CPF or CNPJ
+  email     String
+  phone     String
+  vehicles  Vehicle[]
+  orders    ServiceOrder[]
+  createdAt DateTime @default(now())
+}
+
+model Vehicle {
+  id         String   @id @default(uuid())
+  plate      String   @unique
+  brand      String
+  model      String
+  year       Int
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+  orders     ServiceOrder[]
+}
+
+model Service {
+  id            String             @id @default(uuid())
+  name          String
+  description   String?
+  price         Decimal
+  estimatedTime Int                // minutes
+  orderServices OrderService[]
+}
+
+model Part {
+  id           String      @id @default(uuid())
+  name         String
+  description  String?
+  price        Decimal
+  stockQty     Int         @default(0)
+  orderParts   OrderPart[]
+}
+
+model ServiceOrder {
+  id           String        @id @default(uuid())
+  customerId   String
+  vehicleId    String
+  description  String
+  status       OrderStatus   @default(RECEIVED)
+  totalPrice   Decimal       @default(0)
+  customer     Customer      @relation(fields: [customerId], references: [id])
+  vehicle      Vehicle       @relation(fields: [vehicleId], references: [id])
+  services     OrderService[]
+  parts        OrderPart[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model OrderService {
+  id             String       @id @default(uuid())
+  serviceOrderId String
+  serviceId      String
+  serviceOrder   ServiceOrder @relation(fields: [serviceOrderId], references: [id])
+  service        Service      @relation(fields: [serviceId], references: [id])
+}
+
+model OrderPart {
+  id             String       @id @default(uuid())
+  serviceOrderId String
+  partId         String
+  quantity       Int
+  serviceOrder   ServiceOrder @relation(fields: [serviceOrderId], references: [id])
+  part           Part         @relation(fields: [partId], references: [id])
+}
+
+enum OrderStatus {
+  RECEIVED
+  DIAGNOSING
+  WAITING_APPROVAL
+  IN_PROGRESS
+  FINISHED
+  DELIVERED
+}

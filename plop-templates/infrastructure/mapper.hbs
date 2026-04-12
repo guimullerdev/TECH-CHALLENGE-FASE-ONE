@@ -1,0 +1,17 @@
+import { {{pascalCase name}} } from '../../domain/entities/{{kebabCase name}}.entity';
+
+export class {{pascalCase name}}Mapper {
+static toDomain(raw: any): {{pascalCase name}} {
+return new {{pascalCase name}}({
+id: raw.id,
+name: raw.name,
+});
+}
+
+static toPersistence(entity: {{pascalCase name}}): any {
+return {
+id: entity.id,
+name: entity.name,
+};
+}
+}

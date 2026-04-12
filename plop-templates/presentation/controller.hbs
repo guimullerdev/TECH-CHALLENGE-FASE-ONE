@@ -1,0 +1,14 @@
+import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Create{{pascalCase name}}UseCase } from '../application/use-cases/create-{{kebabCase name}}.use-case';
+import { Create{{pascalCase name}}Dto } from '../application/dto/create-{{kebabCase name}}.dto';
+
+@Controller('{{kebabCase name}}')
+export class {{pascalCase name}}Controller {
+constructor(private readonly create{{pascalCase name}}UseCase: Create{{pascalCase name}}UseCase) {}
+
+@Post()
+@HttpCode(HttpStatus.CREATED)
+create(@Body() dto: Create{{pascalCase name}}Dto) {
+return this.create{{pascalCase name}}UseCase.execute(dto);
+}
+}

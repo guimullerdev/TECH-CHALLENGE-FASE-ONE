@@ -1,0 +1,19 @@
+import { Module } from '@nestjs/common';
+import { {{pascalCase name}}Controller } from './{{kebabCase name}}.controller';
+import { Create{{pascalCase name}}UseCase } from '../application/use-cases/create-{{kebabCase name}}.use-case';
+import { {{pascalCase name}}Repository } from '../domain/repositories/{{kebabCase name}}.repository';
+import { {{pascalCase name}}PrismaRepository } from '../infrastructure/repositories/{{kebabCase
+name}}.prisma.repository';
+
+@Module({
+controllers: [{{pascalCase name}}Controller],
+providers: [
+Create{{pascalCase name}}UseCase,
+{
+provide: {{pascalCase name}}Repository,
+useClass: {{pascalCase name}}PrismaRepository,
+},
+],
+exports: [{{pascalCase name}}Repository],
+})
+export class {{pascalCase name}}Module {}

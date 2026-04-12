@@ -1,0 +1,36 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from 'src/shared/prisma/prisma.service';
+import { {{pascalCase name}}Repository } from '../../domain/repositories/{{kebabCase name}}.repository';
+import { {{pascalCase name}} } from '../../domain/entities/{{kebabCase name}}.entity';
+import { {{pascalCase name}}Mapper } from '../mappers/{{kebabCase name}}.mapper';
+
+@Injectable()
+export class {{pascalCase name}}PrismaRepository implements {{pascalCase name}}Repository {
+constructor(private readonly prisma: PrismaService) {}
+
+async findById(id: string): Promise<{{pascalCase name}} | null> {
+    const record = await this.prisma.{{camelCase name}}.findUnique({
+    where: { id },
+    });
+
+    if (!record) return null;
+
+    return {{pascalCase name}}Mapper.toDomain(record);
+    }
+
+    async save(entity: {{pascalCase name}}): Promise<void> {
+        const data = {{pascalCase name}}Mapper.toPersistence(entity);
+
+        await this.prisma.{{camelCase name}}.upsert({
+        where: { id: entity.id },
+        create: data,
+        update: data,
+        });
+        }
+
+        async delete(id: string): Promise<void> {
+            await this.prisma.{{camelCase name}}.delete({
+            where: { id },
+            });
+            }
+            }

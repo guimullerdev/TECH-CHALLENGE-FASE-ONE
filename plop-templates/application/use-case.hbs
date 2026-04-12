@@ -1,0 +1,19 @@
+import { Injectable } from '@nestjs/common';
+import { {{pascalCase name}}Repository } from '../../domain/repositories/{{kebabCase name}}.repository';
+import { Create{{pascalCase name}}Dto } from '../dto/create-{{kebabCase name}}.dto';
+import { {{pascalCase name}} } from '../../domain/entities/{{kebabCase name}}.entity';
+
+@Injectable()
+export class Create{{pascalCase name}}UseCase {
+constructor(private readonly repository: {{pascalCase name}}Repository) {}
+
+async execute(dto: Create{{pascalCase name}}Dto): Promise<{{pascalCase name}}> {
+    const entity = new {{pascalCase name}}({
+    ...dto,
+    });
+
+    await this.repository.save(entity);
+
+    return entity;
+    }
+    }

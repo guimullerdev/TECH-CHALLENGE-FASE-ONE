@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ServicesRepository } from '../../domain/repositories/services.repository';
 import { Services } from '../../domain/entities/services.entity';
@@ -6,31 +7,29 @@ import { ServicesMapper } from '../mappers/services.mapper';
 
 @Injectable()
 export class ServicesPrismaRepository implements ServicesRepository {
-constructor(private readonly prisma: PrismaService) {}
+    constructor(private readonly prisma: PrismaService) { }
 
-async findById(id: string): Promise<Services | null> {
-    const record = await this.prisma.service.findUnique({
-    where: { id },
-    });
+    async findById(id: string): Promise<Services | null> {
+        const record = await this.prisma.service.findUnique({ where: { id } });
+        if (!record) return null;
+        return ServicesMapper.toDomain(record);
+    }
 
-    if (!record) return null;
-
-    return ServicesMapper.toDomain(record);
+    async findAll(): Promise<Services[]> {
+        const records = await this.prisma.service.findMany({ orderBy: { name: 'asc' } });
+        return records.map(ServicesMapper.toDomain);
     }
 
     async save(entity: Services): Promise<void> {
         const data = ServicesMapper.toPersistence(entity);
-
         await this.prisma.service.upsert({
-        where: { id: entity.id },
-        create: data,
-        update: data,
+            where: { id: entity.id },
+            create: data,
+            update: data,
         });
-        }
+    }
 
-        async delete(id: string): Promise<void> {
-            await this.prisma.service.delete({
-            where: { id },
-            });
-            }
-            }
+    async delete(id: string): Promise<void> {
+        await this.prisma.service.delete({ where: { id } });
+    }
+}

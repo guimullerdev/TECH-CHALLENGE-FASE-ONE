@@ -31,4 +31,16 @@ export class Customer {
     }): Customer {
         return new Customer(props.id, props.name, props.email, props.createdAt, props.document, props.phone);
     }
+
+    update(props: Partial<{ name: string; email: string; document: string; phone: string }>): Customer {
+        if (props.email && !props.email.includes('@')) throw new Error('Email inválido');
+        return new Customer(
+            this.id,
+            props.name ?? this.name,
+            props.email ?? this.email,
+            this.createdAt,
+            props.document ?? this.document,
+            props.phone ?? this.phone,
+        );
+    }
 }

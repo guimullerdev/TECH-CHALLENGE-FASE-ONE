@@ -1,22 +1,38 @@
 import { Module } from '@nestjs/common';
 
-// Controller
+import { PrismaModule } from 'src/prisma/prisma.module';
+import { ServicesModule } from '../services/presentation/services.module';
+import { PartsModule } from '../parts/parts.module';
+
 import { ServiceOrdersController } from './presentation/service-orders.controller';
-
-// Use Cases
-import { CreateServiceOrderUseCase } from './application/use-cases/create-service-orders.usecase';
-
-// Repositories
 import { ServiceOrderPrismaRepository } from './infrastructure/repositories/service-orders-prisma.repository';
 
+import { CreateServiceOrderUseCase } from './application/use-cases/create-service-orders.usecase';
+import { GetServiceOrderUseCase } from './application/use-cases/get-service-orders.usecase';
+import { UpdateServiceOrderUseCase } from './application/use-cases/update-service-orders.usecase';
+import { DeleteServiceOrderUseCase } from './application/use-cases/delete-service-orders.usecase';
+import { AddServiceToOrderUseCase } from './application/use-cases/add-service-to-order.usecase';
+import { RemoveServiceFromOrderUseCase } from './application/use-cases/remove-service-from-order.usecase';
+import { AddPartToOrderUseCase } from './application/use-cases/add-part-to-order.usecase';
+import { RemovePartFromOrderUseCase } from './application/use-cases/remove-part-from-order.usecase';
+
 @Module({
+    imports: [PrismaModule, ServicesModule, PartsModule],
     controllers: [ServiceOrdersController],
     providers: [
         CreateServiceOrderUseCase,
+        GetServiceOrderUseCase,
+        UpdateServiceOrderUseCase,
+        DeleteServiceOrderUseCase,
+        AddServiceToOrderUseCase,
+        RemoveServiceFromOrderUseCase,
+        AddPartToOrderUseCase,
+        RemovePartFromOrderUseCase,
         {
             provide: 'ServiceOrderRepository',
             useClass: ServiceOrderPrismaRepository,
         },
     ],
+    exports: ['ServiceOrderRepository'],
 })
 export class ServiceOrdersModule { }

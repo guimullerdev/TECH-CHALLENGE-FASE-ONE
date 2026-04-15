@@ -1,4 +1,7 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateServiceOrderDto } from './create-service-orders.dto';
+import { IsOptional, IsString } from 'class-validator';
 
-export class UpdateServiceOrderDto extends PartialType(CreateServiceOrderDto) { }
+export class UpdateServiceOrderDto {
+    @IsString()
+    @IsOptional()
+    description?: string;
+}

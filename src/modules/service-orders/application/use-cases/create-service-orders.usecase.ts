@@ -11,8 +11,8 @@ export class CreateServiceOrderUseCase {
         private readonly repo: ServiceOrderRepository
     ) { }
 
-    async execute(dto: CreateServiceOrderDto) {
+    async execute(dto: CreateServiceOrderDto): Promise<ServiceOrder> {
         const serviceOrder = ServiceOrder.create(dto);
-        await this.repo.create(serviceOrder);
+        return this.repo.create(serviceOrder);
     }
 }

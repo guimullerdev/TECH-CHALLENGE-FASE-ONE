@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
+import { InsufficientStockError } from '../../domain/entities/service-orders.entity';
+
 import { ServiceOrderRepository } from '../../domain/repositories/service-orders.repository.interface';
 import { ServiceOrder, ServiceOrderStatus } from '../../domain/entities/service-orders.entity';
 import { ServiceOrderMapper } from '../mappers/service-orders.mapper';
@@ -122,5 +124,36 @@ export class ServiceOrderPrismaRepository implements ServiceOrderRepository {
                 data: { totalPrice: new Prisma.Decimal(newTotalPrice), updatedAt: new Date() },
             }),
         ]);
+    }
+
+    async reserveStockAndApprove(serviceOrder: ServiceOrder): Promise<ServiceOrder> {
+        const raw = await this.prisma.$transaction(async (tx) => {
+            // 1. Validate and decrement stock for every part atomically.
+            for (const item of serviceOrder.parts) {
+                const part = await tx.part.findUnique({ where: { id: item.partId } });
+                if (!part) {
+                    throw new InsufficientStockError(item.partId, item.quantity, 0);
+                }
+                if (part.stockQty < item.quantity) {
+                    throw new InsufficientStockError(item.partId, item.quantity, part.stockQty);
+                }
+                await tx.part.update({
+                    where: { id: item.partId },
+                    data: { stockQty: { decrement: item.quantity } },
+                });
+            }
+
+            // 2. Transition ServiceOrder to IN_PROGRESS.
+            return tx.serviceOrder.update({
+                where: { id: serviceOrder.id },
+                data: {
+                    status: serviceOrder.status as unknown as any,
+                    updatedAt: serviceOrder.updatedAt,
+                },
+                include: includeItems,
+            });
+        });
+
+        return ServiceOrderMapper.toDomain(raw);
     }
 }

@@ -1,9 +1,9 @@
 # Planning — Sistema OS Oficina Mecânica
 
 ## Status Geral
-- Fase atual: Fase 3 — Ciclo de Vida da OS (State Machine)
+- Fase atual: Fase 5 — Qualidade e Observabilidade
 - Última atualização: 2026-04-14
-- Progresso: 8/33 features concluídas
+- Progresso: 18/33 features concluídas
 
 ---
 
@@ -64,37 +64,37 @@
 
 Fluxo: `RECEIVED → DIAGNOSING → WAITING_APPROVAL → IN_PROGRESS → FINISHED → DELIVERED`
 
-- [ ] **Feature 9: Iniciar Diagnóstico**
+- [x] **Feature 9: Iniciar Diagnóstico**
   - Descrição: `POST /service-orders/:id/start-diagnosis`. Transição `RECEIVED → DIAGNOSING`. Valida que o status atual é RECEIVED.
   - Depende de: Feature 5
   - Aceite: status muda para DIAGNOSING; retorna 422 se status não for RECEIVED.
 
-- [ ] **Feature 10: Concluir Diagnóstico**
+- [x] **Feature 10: Concluir Diagnóstico**
   - Descrição: `POST /service-orders/:id/finish-diagnosis`. Transição `DIAGNOSING → WAITING_APPROVAL`. Recalcula orçamento com os itens atuais.
   - Depende de: Features 8, 9
   - Aceite: status muda para WAITING_APPROVAL; `totalPrice` é atualizado; retorna 422 se status não for DIAGNOSING.
 
-- [ ] **Feature 11: Gerar/Enviar Orçamento**
+- [x] **Feature 11: Gerar/Enviar Orçamento**
   - Descrição: O orçamento é calculado automaticamente (Feature 8). Este endpoint `POST /service-orders/:id/send-budget` formaliza o envio, garantindo que `totalPrice > 0` e status seja WAITING_APPROVAL.
   - Depende de: Feature 10
   - Aceite: retorna 422 se `totalPrice == 0`; resposta inclui detalhamento de itens e total.
 
-- [ ] **Feature 12: Aprovar Orçamento**
+- [x] **Feature 12: Aprovar Orçamento**
   - Descrição: `POST /service-orders/:id/approve-budget`. Transição `WAITING_APPROVAL → IN_PROGRESS`. Aciona reserva de estoque das peças da OS.
   - Depende de: Features 11, 16
   - Aceite: status muda para IN_PROGRESS; estoque das peças é reservado atomicamente; retorna 422 para status incorreto.
 
-- [ ] **Feature 13: Rejeitar Orçamento**
+- [x] **Feature 13: Rejeitar Orçamento**
   - Descrição: `POST /service-orders/:id/reject-budget`. Transição `WAITING_APPROVAL → RECEIVED`. Permite reiniciar o diagnóstico.
   - Depende de: Feature 11
   - Aceite: status volta para RECEIVED; nenhum estoque é alterado; retorna 422 para status incorreto.
 
-- [ ] **Feature 14: Finalizar OS**
+- [x] **Feature 14: Finalizar OS**
   - Descrição: `POST /service-orders/:id/finish`. Transição `IN_PROGRESS → FINISHED`. Confirma baixa de estoque.
   - Depende de: Features 12, 17
   - Aceite: status muda para FINISHED; estoque é baixado definitivamente; retorna 422 para status incorreto.
 
-- [ ] **Feature 15: Entregar Veículo**
+- [x] **Feature 15: Entregar Veículo**
   - Descrição: `POST /service-orders/:id/deliver`. Transição `FINISHED → DELIVERED`. Estado final da OS.
   - Depende de: Feature 14
   - Aceite: status muda para DELIVERED; OS não pode mais ser alterada; retorna 422 para status incorreto.
@@ -104,17 +104,17 @@ Fluxo: `RECEIVED → DIAGNOSING → WAITING_APPROVAL → IN_PROGRESS → FINISHE
 ### Fase 4 — Estoque Transacional
 > Objetivo: garantir consistência entre o estoque de peças e as operações da OS, usando transações Prisma para evitar race conditions.
 
-- [ ] **Feature 16: Reserva de Estoque**
+- [x] **Feature 16: Reserva de Estoque**
   - Descrição: Ao aprovar orçamento (Feature 12), reservar a quantidade de cada peça da OS. Usar `prisma.$transaction` para garantir atomicidade. Retornar erro se estoque insuficiente.
   - Depende de: Feature 7
   - Aceite: se qualquer peça não tiver estoque suficiente, nenhuma reserva é feita e o orçamento não é aprovado; `stockQty` reduzido atomicamente.
 
-- [ ] **Feature 17: Baixa de Estoque**
+- [x] **Feature 17: Baixa de Estoque**
   - Descrição: Ao finalizar OS (Feature 14), confirmar a saída definitiva do estoque. As peças já foram reservadas na aprovação.
   - Depende de: Feature 16
   - Aceite: `stockQty` reflete a baixa após a finalização; operação é idempotente.
 
-- [ ] **Feature 18: Validação de Disponibilidade**
+- [x] **Feature 18: Validação de Disponibilidade**
   - Descrição: Ao adicionar peça à OS (Feature 7), verificar se a quantidade solicitada está disponível em estoque. Exibir mensagem informativa se não houver estoque suficiente (não bloqueia, apenas avisa).
   - Depende de: Feature 7
   - Aceite: resposta inclui flag `stockAvailable: boolean` e `stockQty` atual; não impede o cadastro do item na OS.
@@ -478,3 +478,13 @@ RECEIVED → DIAGNOSING → WAITING_APPROVAL → IN_PROGRESS → FINISHED → DE
 | 2026-04-14 | Feature 6 — Adicionar/Remover Serviço à OS | ✅ Concluído | POST /:id/services, DELETE /:id/services/:serviceId; 409 para serviço duplicado; totalPrice recalculado |
 | 2026-04-14 | Feature 7 — Adicionar/Remover Peça à OS | ✅ Concluído | POST /:id/parts (body: partId + quantity >= 1), DELETE /:id/parts/:partId; totalPrice recalculado |
 | 2026-04-14 | Feature 8 — Cálculo automático de orçamento | ✅ Concluído | recalculateTotalPrice() no aggregate root; disparado em addService/removeService/addPart/removePart |
+| 2026-04-14 | Feature 9 — Iniciar Diagnóstico | ✅ Concluído | POST /:id/start-diagnosis; InvalidTransitionError → 422; RECEIVED → DIAGNOSING |
+| 2026-04-14 | Feature 10 — Concluir Diagnóstico | ✅ Concluído | POST /:id/finish-diagnosis; totalPrice recalculado; DIAGNOSING → WAITING_APPROVAL |
+| 2026-04-14 | Feature 11 — Enviar Orçamento | ✅ Concluído | POST /:id/send-budget; 422 se totalPrice==0 ou status incorreto; sem mudança de status |
+| 2026-04-14 | Feature 12 — Aprovar Orçamento | ✅ Concluído | POST /:id/approve-budget; WAITING_APPROVAL → IN_PROGRESS; stub para reserva de estoque (Fase 4) |
+| 2026-04-14 | Feature 13 — Rejeitar Orçamento | ✅ Concluído | POST /:id/reject-budget; WAITING_APPROVAL → RECEIVED; estoque inalterado |
+| 2026-04-14 | Feature 14 — Finalizar OS | ✅ Concluído | POST /:id/finish; IN_PROGRESS → FINISHED; stub para baixa de estoque (Fase 4) |
+| 2026-04-14 | Feature 15 — Entregar Veículo | ✅ Concluído | POST /:id/deliver; FINISHED → DELIVERED; estado final imutável |
+| 2026-04-14 | Feature 16 — Reserva de Estoque | ✅ Concluído | reserveStockAndApprove(); prisma.$transaction interativa; InsufficientStockError → 422 com rollback total |
+| 2026-04-14 | Feature 17 — Baixa de Estoque | ✅ Concluído | stockQty já deduzido atomicamente na aprovação; finish() apenas confirma estado FINISHED (idempotente) |
+| 2026-04-14 | Feature 18 — Validação de Disponibilidade | ✅ Concluído | addPart retorna { order, stockAvailable, stockQty }; não bloqueia a operação |

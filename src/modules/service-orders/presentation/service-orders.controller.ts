@@ -20,6 +20,14 @@ import { RemoveServiceFromOrderUseCase } from '../application/use-cases/remove-s
 import { AddPartToOrderUseCase } from '../application/use-cases/add-part-to-order.usecase';
 import { RemovePartFromOrderUseCase } from '../application/use-cases/remove-part-from-order.usecase';
 
+import { StartDiagnosisUseCase } from '../application/use-cases/start-diagnosis.usecase';
+import { FinishDiagnosisUseCase } from '../application/use-cases/finish-diagnosis.usecase';
+import { SendBudgetUseCase } from '../application/use-cases/send-budget.usecase';
+import { ApproveBudgetUseCase } from '../application/use-cases/approve-budget.usecase';
+import { RejectBudgetUseCase } from '../application/use-cases/reject-budget.usecase';
+import { FinishOrderUseCase } from '../application/use-cases/finish-order.usecase';
+import { DeliverOrderUseCase } from '../application/use-cases/deliver-order.usecase';
+
 import { CreateServiceOrderDto } from '../application/dto/create-service-orders.dto';
 import { UpdateServiceOrderDto } from '../application/dto/update-service-orders.dto';
 import { AddServiceToOrderDto } from '../application/dto/add-service-to-order.dto';
@@ -37,6 +45,13 @@ export class ServiceOrdersController {
         private readonly removeServiceFromOrderUseCase: RemoveServiceFromOrderUseCase,
         private readonly addPartToOrderUseCase: AddPartToOrderUseCase,
         private readonly removePartFromOrderUseCase: RemovePartFromOrderUseCase,
+        private readonly startDiagnosisUseCase: StartDiagnosisUseCase,
+        private readonly finishDiagnosisUseCase: FinishDiagnosisUseCase,
+        private readonly sendBudgetUseCase: SendBudgetUseCase,
+        private readonly approveBudgetUseCase: ApproveBudgetUseCase,
+        private readonly rejectBudgetUseCase: RejectBudgetUseCase,
+        private readonly finishOrderUseCase: FinishOrderUseCase,
+        private readonly deliverOrderUseCase: DeliverOrderUseCase,
     ) { }
 
     @Post()
@@ -90,5 +105,42 @@ export class ServiceOrdersController {
     @HttpCode(HttpStatus.NO_CONTENT)
     removePart(@Param('id') id: string, @Param('partId') partId: string) {
         return this.removePartFromOrderUseCase.execute(id, partId);
+    }
+
+    // ── State machine ────────────────────────────────────────────────────────
+
+    @Post(':id/start-diagnosis')
+    startDiagnosis(@Param('id') id: string) {
+        return this.startDiagnosisUseCase.execute(id);
+    }
+
+    @Post(':id/finish-diagnosis')
+    finishDiagnosis(@Param('id') id: string) {
+        return this.finishDiagnosisUseCase.execute(id);
+    }
+
+    @Post(':id/send-budget')
+    sendBudget(@Param('id') id: string) {
+        return this.sendBudgetUseCase.execute(id);
+    }
+
+    @Post(':id/approve-budget')
+    approveBudget(@Param('id') id: string) {
+        return this.approveBudgetUseCase.execute(id);
+    }
+
+    @Post(':id/reject-budget')
+    rejectBudget(@Param('id') id: string) {
+        return this.rejectBudgetUseCase.execute(id);
+    }
+
+    @Post(':id/finish')
+    finish(@Param('id') id: string) {
+        return this.finishOrderUseCase.execute(id);
+    }
+
+    @Post(':id/deliver')
+    deliver(@Param('id') id: string) {
+        return this.deliverOrderUseCase.execute(id);
     }
 }

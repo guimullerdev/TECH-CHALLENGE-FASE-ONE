@@ -139,4 +139,120 @@ export class ServiceOrder {
         const partsTotal = parts.reduce((sum, p) => sum + p.price * p.quantity, 0);
         return servicesTotal + partsTotal;
     }
+
+    // ── State machine ───────────────────────────────────────────────────────
+
+    startDiagnosis(): ServiceOrder {
+        if (this.props.status !== ServiceOrderStatus.RECEIVED) {
+            throw new InvalidTransitionError(
+                `Transição inválida: ${this.props.status} → DIAGNOSING. Status esperado: RECEIVED`,
+            );
+        }
+        return new ServiceOrder({
+            ...this.props,
+            status: ServiceOrderStatus.DIAGNOSING,
+            updatedAt: new Date(),
+        });
+    }
+
+    finishDiagnosis(): ServiceOrder {
+        if (this.props.status !== ServiceOrderStatus.DIAGNOSING) {
+            throw new InvalidTransitionError(
+                `Transição inválida: ${this.props.status} → WAITING_APPROVAL. Status esperado: DIAGNOSING`,
+            );
+        }
+        const totalPrice = this.recalculateTotalPrice(this.props.services, this.props.parts);
+        return new ServiceOrder({
+            ...this.props,
+            status: ServiceOrderStatus.WAITING_APPROVAL,
+            totalPrice,
+            updatedAt: new Date(),
+        });
+    }
+
+    validateBudget(): void {
+        if (this.props.status !== ServiceOrderStatus.WAITING_APPROVAL) {
+            throw new InvalidTransitionError(
+                `Orçamento só pode ser enviado no status WAITING_APPROVAL. Status atual: ${this.props.status}`,
+            );
+        }
+        if (this.props.totalPrice <= 0) {
+            throw new InvalidTransitionError(
+                'Orçamento não pode ser enviado com totalPrice igual a zero',
+            );
+        }
+    }
+
+    approveBudget(): ServiceOrder {
+        if (this.props.status !== ServiceOrderStatus.WAITING_APPROVAL) {
+            throw new InvalidTransitionError(
+                `Transição inválida: ${this.props.status} → IN_PROGRESS. Status esperado: WAITING_APPROVAL`,
+            );
+        }
+        if (this.props.totalPrice <= 0) {
+            throw new InvalidTransitionError(
+                'Não é possível aprovar orçamento com valor zero',
+            );
+        }
+        return new ServiceOrder({
+            ...this.props,
+            status: ServiceOrderStatus.IN_PROGRESS,
+            updatedAt: new Date(),
+        });
+    }
+
+    rejectBudget(): ServiceOrder {
+        if (this.props.status !== ServiceOrderStatus.WAITING_APPROVAL) {
+            throw new InvalidTransitionError(
+                `Transição inválida: ${this.props.status} → RECEIVED. Status esperado: WAITING_APPROVAL`,
+            );
+        }
+        return new ServiceOrder({
+            ...this.props,
+            status: ServiceOrderStatus.RECEIVED,
+            updatedAt: new Date(),
+        });
+    }
+
+    finish(): ServiceOrder {
+        if (this.props.status !== ServiceOrderStatus.IN_PROGRESS) {
+            throw new InvalidTransitionError(
+                `Transição inválida: ${this.props.status} → FINISHED. Status esperado: IN_PROGRESS`,
+            );
+        }
+        return new ServiceOrder({
+            ...this.props,
+            status: ServiceOrderStatus.FINISHED,
+            updatedAt: new Date(),
+        });
+    }
+
+    deliver(): ServiceOrder {
+        if (this.props.status !== ServiceOrderStatus.FINISHED) {
+            throw new InvalidTransitionError(
+                `Transição inválida: ${this.props.status} → DELIVERED. Status esperado: FINISHED`,
+            );
+        }
+        return new ServiceOrder({
+            ...this.props,
+            status: ServiceOrderStatus.DELIVERED,
+            updatedAt: new Date(),
+        });
+    }
+}
+
+export class InvalidTransitionError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'InvalidTransitionError';
+    }
+}
+
+export class InsufficientStockError extends Error {
+    constructor(partId: string, requested: number, available: number) {
+        super(
+            `Estoque insuficiente para a peça ${partId}: solicitado ${requested}, disponível ${available}`,
+        );
+        this.name = 'InsufficientStockError';
+    }
 }

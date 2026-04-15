@@ -3,6 +3,7 @@ import { BadRequestException, ConflictException, Inject, Injectable, NotFoundExc
 import type { ServiceOrderRepository } from '../../domain/repositories/service-orders.repository.interface';
 import type { PartRepository } from 'src/modules/parts/domain/repositories/parts.repository.interface';
 import { ServiceOrder } from '../../domain/entities/service-orders.entity';
+import { AddPartResponseDto } from '../dto/add-part-response.dto';
 
 @Injectable()
 export class AddPartToOrderUseCase {
@@ -13,7 +14,7 @@ export class AddPartToOrderUseCase {
         private readonly partRepo: PartRepository,
     ) { }
 
-    async execute(serviceOrderId: string, partId: string, quantity: number): Promise<ServiceOrder> {
+    async execute(serviceOrderId: string, partId: string, quantity: number): Promise<AddPartResponseDto> {
         if (quantity < 1) throw new BadRequestException('Quantidade deve ser >= 1');
 
         const order = await this.orderRepo.findById(serviceOrderId);
@@ -36,6 +37,12 @@ export class AddPartToOrderUseCase {
 
         await this.orderRepo.addPart(serviceOrderId, partId, quantity, updatedOrder.totalPrice);
         const result = await this.orderRepo.findById(serviceOrderId);
-        return result!;
+
+        // Feature 18: inform the caller about current stock availability (non-blocking).
+        return {
+            order: result!,
+            stockAvailable: part.stockQty >= quantity,
+            stockQty: part.stockQty,
+        };
     }
 }

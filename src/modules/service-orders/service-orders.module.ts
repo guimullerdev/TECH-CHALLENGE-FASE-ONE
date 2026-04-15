@@ -15,6 +15,13 @@ import { AddServiceToOrderUseCase } from './application/use-cases/add-service-to
 import { RemoveServiceFromOrderUseCase } from './application/use-cases/remove-service-from-order.usecase';
 import { AddPartToOrderUseCase } from './application/use-cases/add-part-to-order.usecase';
 import { RemovePartFromOrderUseCase } from './application/use-cases/remove-part-from-order.usecase';
+import { StartDiagnosisUseCase } from './application/use-cases/start-diagnosis.usecase';
+import { FinishDiagnosisUseCase } from './application/use-cases/finish-diagnosis.usecase';
+import { SendBudgetUseCase } from './application/use-cases/send-budget.usecase';
+import { ApproveBudgetUseCase } from './application/use-cases/approve-budget.usecase';
+import { RejectBudgetUseCase } from './application/use-cases/reject-budget.usecase';
+import { FinishOrderUseCase } from './application/use-cases/finish-order.usecase';
+import { DeliverOrderUseCase } from './application/use-cases/deliver-order.usecase';
 
 @Module({
     imports: [PrismaModule, ServicesModule, PartsModule],
@@ -28,6 +35,13 @@ import { RemovePartFromOrderUseCase } from './application/use-cases/remove-part-
         RemoveServiceFromOrderUseCase,
         AddPartToOrderUseCase,
         RemovePartFromOrderUseCase,
+        StartDiagnosisUseCase,
+        FinishDiagnosisUseCase,
+        SendBudgetUseCase,
+        ApproveBudgetUseCase,
+        RejectBudgetUseCase,
+        FinishOrderUseCase,
+        DeliverOrderUseCase,
         {
             provide: 'ServiceOrderRepository',
             useClass: ServiceOrderPrismaRepository,

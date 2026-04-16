@@ -32,8 +32,6 @@ export class ApproveBudgetUseCase {
         }
 
         try {
-            // Feature 16: atomically validates stock, decrements stockQty for every part,
-            // and persists the IN_PROGRESS status — full rollback if any part is short.
             return await this.repo.reserveStockAndApprove(updated);
         } catch (err) {
             if (err instanceof InsufficientStockError) throw new UnprocessableEntityException(err.message);

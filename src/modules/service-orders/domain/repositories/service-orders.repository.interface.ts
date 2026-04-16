@@ -10,10 +10,5 @@ export interface ServiceOrderRepository {
     removeService(serviceOrderId: string, serviceId: string, newTotalPrice: number): Promise<void>;
     addPart(serviceOrderId: string, partId: string, quantity: number, newTotalPrice: number): Promise<void>;
     removePart(serviceOrderId: string, partId: string, newTotalPrice: number): Promise<void>;
-    /**
-     * Feature 16 — Atomically: validates stock, decrements stockQty for every part,
-     * and sets the ServiceOrder status to IN_PROGRESS.
-     * Throws InsufficientStockError if any part lacks stock (full rollback).
-     */
     reserveStockAndApprove(serviceOrder: ServiceOrder): Promise<ServiceOrder>;
 }

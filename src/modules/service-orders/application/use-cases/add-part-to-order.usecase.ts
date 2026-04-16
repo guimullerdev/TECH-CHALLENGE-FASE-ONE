@@ -38,7 +38,6 @@ export class AddPartToOrderUseCase {
         await this.orderRepo.addPart(serviceOrderId, partId, quantity, updatedOrder.totalPrice);
         const result = await this.orderRepo.findById(serviceOrderId);
 
-        // Feature 18: inform the caller about current stock availability (non-blocking).
         return {
             order: result!,
             stockAvailable: part.stockQty >= quantity,

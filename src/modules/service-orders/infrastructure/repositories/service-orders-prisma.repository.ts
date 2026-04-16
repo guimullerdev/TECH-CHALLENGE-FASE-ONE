@@ -128,7 +128,6 @@ export class ServiceOrderPrismaRepository implements ServiceOrderRepository {
 
     async reserveStockAndApprove(serviceOrder: ServiceOrder): Promise<ServiceOrder> {
         const raw = await this.prisma.$transaction(async (tx) => {
-            // 1. Validate and decrement stock for every part atomically.
             for (const item of serviceOrder.parts) {
                 const part = await tx.part.findUnique({ where: { id: item.partId } });
                 if (!part) {
@@ -143,7 +142,6 @@ export class ServiceOrderPrismaRepository implements ServiceOrderRepository {
                 });
             }
 
-            // 2. Transition ServiceOrder to IN_PROGRESS.
             return tx.serviceOrder.update({
                 where: { id: serviceOrder.id },
                 data: {

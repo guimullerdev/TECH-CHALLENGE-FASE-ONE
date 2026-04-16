@@ -21,8 +21,6 @@ export class SendBudgetUseCase {
             throw err;
         }
 
-        // Budget is valid — return the current order with full item detail.
-        // No status transition: status remains WAITING_APPROVAL.
         return order;
     }
 }

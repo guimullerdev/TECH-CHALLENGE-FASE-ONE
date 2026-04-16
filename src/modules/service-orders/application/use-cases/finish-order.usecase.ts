@@ -16,9 +16,6 @@ export class FinishOrderUseCase {
 
         let updated: ServiceOrder;
         try {
-            // Feature 17: stock was already atomically deducted when the budget was approved
-            // (reserveStockAndApprove). Finishing the OS confirms the state transition only —
-            // no additional stockQty change is needed, making this operation idempotent.
             updated = order.finish();
         } catch (err) {
             if (err instanceof InvalidTransitionError) throw new UnprocessableEntityException(err.message);

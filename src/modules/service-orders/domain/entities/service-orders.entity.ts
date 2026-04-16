@@ -140,8 +140,6 @@ export class ServiceOrder {
         return servicesTotal + partsTotal;
     }
 
-    // ── State machine ───────────────────────────────────────────────────────
-
     startDiagnosis(): ServiceOrder {
         if (this.props.status !== ServiceOrderStatus.RECEIVED) {
             throw new InvalidTransitionError(

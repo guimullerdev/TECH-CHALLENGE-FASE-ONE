@@ -2,18 +2,31 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Global exception filter — standardises all error responses to { statusCode, message, error }
+  app.useGlobalFilters(new HttpExceptionFilter());
+
   const config = new DocumentBuilder()
-    .setTitle('Cats example')
-    .setDescription('The cats API description')
+    .setTitle('Oficina API')
+    .setDescription(
+      'API para gestão de ordens de serviço de uma oficina mecânica. ' +
+      'Inclui CRUD de clientes, veículos, serviços e peças, além do ciclo de vida completo da OS ' +
+      '(abertura → diagnóstico → orçamento → aprovação → execução → entrega).',
+    )
     .setVersion('1.0')
-    .addTag('cats')
+    .addTag('customers', 'Gestão de clientes')
+    .addTag('vehicles', 'Gestão de veículos')
+    .addTag('services', 'Catálogo de serviços')
+    .addTag('parts', 'Estoque de peças')
+    .addTag('service-orders', 'Ordens de serviço')
     .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, documentFactory);
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
 
   await app.listen(process.env.PORT ?? 3000);
 }

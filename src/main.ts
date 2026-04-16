@@ -7,7 +7,6 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Global exception filter — standardises all error responses to { statusCode, message, error }
   app.useGlobalFilters(new HttpExceptionFilter());
 
   const config = new DocumentBuilder()

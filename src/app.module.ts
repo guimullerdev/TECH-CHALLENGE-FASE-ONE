@@ -14,7 +14,6 @@ import { ServiceOrdersModule } from './modules/service-orders/service-orders.mod
       isGlobal: true,
     }),
 
-    // Core Modules
     PrismaModule,
     ServiceOrdersModule,
     CustomersModule,

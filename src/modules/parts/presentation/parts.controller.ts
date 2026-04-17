@@ -1,5 +1,7 @@
-import { Controller, Post, Get, Patch, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { Controller, Post, Get, Patch, Delete, Body, Param, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 import { CreatePartUseCase } from '../application/use-cases/create-parts.usecase';
 import { GetPartUseCase } from '../application/use-cases/get-parts.usecase';
@@ -9,6 +11,8 @@ import { CreatePartDto } from '../application/dto/create-parts.dto';
 import { UpdatePartDto } from '../application/dto/update-parts.dto';
 
 @ApiTags('parts')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('parts')
 export class PartsController {
     constructor(

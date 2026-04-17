@@ -1,5 +1,7 @@
-import { Controller, Post, Get, Patch, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { Controller, Post, Get, Patch, Delete, Body, Param, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 import { CreateServicesUseCase } from '../application/use-cases/create-services.use-case';
 import { GetServicesUseCase } from '../application/use-cases/get-services.use-case';
@@ -9,6 +11,8 @@ import { CreateServicesDto } from '../application/dto/create-services.dto';
 import { UpdateServicesDto } from '../application/dto/update-services.dto';
 
 @ApiTags('services')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('services')
 export class ServicesController {
     constructor(

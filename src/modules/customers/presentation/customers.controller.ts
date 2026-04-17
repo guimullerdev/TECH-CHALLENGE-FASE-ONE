@@ -1,5 +1,7 @@
-import { Controller, Post, Get, Patch, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { Controller, Post, Get, Patch, Delete, Body, Param, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 import { CreateCustomerUseCase } from '../application/use-cases/create-customers.usecase';
 import { GetCustomerUseCase } from '../application/use-cases/get-customers.usecase';
@@ -9,6 +11,8 @@ import { CreateCustomerDto } from '../application/dto/create-customers.dto';
 import { UpdateCustomerDto } from '../application/dto/update-customers.dto';
 
 @ApiTags('customers')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('customers')
 export class CustomersController {
     constructor(

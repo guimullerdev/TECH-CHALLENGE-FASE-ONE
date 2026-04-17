@@ -1,5 +1,7 @@
-import { Controller, Post, Get, Patch, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { Controller, Post, Get, Patch, Delete, Body, Param, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 import { CreateVehicleUseCase } from '../application/use-cases/create-vehicle.usecase';
 import { GetVehicleUseCase } from '../application/use-cases/get-vehicle.usecase';
@@ -9,6 +11,8 @@ import { CreateVehicleDto } from '../application/dto/create-vehicle.dto';
 import { UpdateVehicleDto } from '../application/dto/update-vehicle.dto';
 
 @ApiTags('vehicles')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('vehicles')
 export class VehiclesController {
     constructor(

@@ -9,8 +9,11 @@ import {
     Patch,
     Post,
     Query,
+    UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 import { CreateServiceOrderUseCase } from '../application/use-cases/create-service-orders.usecase';
 import { GetServiceOrderUseCase } from '../application/use-cases/get-service-orders.usecase';
@@ -35,6 +38,8 @@ import { AddPartToOrderDto } from '../application/dto/add-part-to-order.dto';
 import { ServiceOrderStatus } from '../domain/entities/service-orders.entity';
 
 @ApiTags('service-orders')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('service-orders')
 export class ServiceOrdersController {
     constructor(

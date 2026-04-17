@@ -91,3 +91,11 @@ enum OrderStatus {
   FINISHED
   DELIVERED
 }
+
+model User {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  passwordHash     String
+  refreshTokenHash String?
+  createdAt        DateTime @default(now())
+}

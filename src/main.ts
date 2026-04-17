@@ -10,6 +10,7 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   const config = new DocumentBuilder()
+    .addBearerAuth()
     .setTitle('Oficina API')
     .setDescription(
       'API para gestão de ordens de serviço de uma oficina mecânica. ' +
@@ -17,6 +18,7 @@ async function bootstrap() {
       '(abertura → diagnóstico → orçamento → aprovação → execução → entrega).',
     )
     .setVersion('1.0')
+    .addTag('auth', 'Autenticação e emissão de tokens')
     .addTag('customers', 'Gestão de clientes')
     .addTag('vehicles', 'Gestão de veículos')
     .addTag('services', 'Catálogo de serviços')

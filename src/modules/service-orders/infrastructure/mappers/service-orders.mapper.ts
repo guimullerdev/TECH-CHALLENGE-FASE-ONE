@@ -1,63 +1,83 @@
-import { Prisma, OrderStatus } from '@prisma/client';
+import { Prisma, StatusOS } from '@prisma/client';
 import {
-    ServiceOrder,
-    ServiceOrderStatus,
-    ServiceOrderServiceItem,
-    ServiceOrderPartItem,
+    OrdemDeServico,
+    OsItemServico,
+    OsItemPeca,
 } from '../../domain/entities/service-orders.entity';
 
-type PrismaServiceOrderFull = {
+type PrismaOSFull = {
     id: string;
-    customerId: string;
-    vehicleId: string;
-    status: OrderStatus;
-    description: string;
-    totalPrice: Prisma.Decimal;
+    numero: string;
+    clienteId: string;
+    veiculoId: string;
+    status: StatusOS;
+    descricaoProblema: string | null;
+    dataAbertura: Date;
+    dataFechamento: Date | null;
     createdAt: Date;
     updatedAt: Date;
-    services?: Array<{ id: string; serviceId: string; service: { price: Prisma.Decimal } }>;
-    parts?: Array<{ id: string; partId: string; quantity: number; part: { price: Prisma.Decimal } }>;
+    osItensServico?: Array<{
+        id: string;
+        servicoId: string;
+        precoUnitario: Prisma.Decimal;
+        inicioExec: Date | null;
+        fimExec: Date | null;
+    }>;
+    osItensPeca?: Array<{
+        id: string;
+        pecaId: string;
+        quantidade: number;
+        precoUnitario: Prisma.Decimal;
+        utilizada: boolean;
+    }>;
 };
 
 export class ServiceOrderMapper {
-    static toDomain(raw: PrismaServiceOrderFull): ServiceOrder {
-        const services: ServiceOrderServiceItem[] = (raw.services ?? []).map(s => ({
+    static toDomain(raw: PrismaOSFull): OrdemDeServico {
+        const servicos: OsItemServico[] = (raw.osItensServico ?? []).map(s => ({
             id: s.id,
-            serviceId: s.serviceId,
-            price: Number(s.service.price),
+            servicoId: s.servicoId,
+            precoUnitario: Number(s.precoUnitario),
+            inicioExec: s.inicioExec ?? undefined,
+            fimExec: s.fimExec ?? undefined,
         }));
 
-        const parts: ServiceOrderPartItem[] = (raw.parts ?? []).map(p => ({
+        const pecas: OsItemPeca[] = (raw.osItensPeca ?? []).map(p => ({
             id: p.id,
-            partId: p.partId,
-            quantity: p.quantity,
-            price: Number(p.part.price),
+            pecaId: p.pecaId,
+            quantidade: p.quantidade,
+            precoUnitario: Number(p.precoUnitario),
+            utilizada: p.utilizada,
         }));
 
-        return ServiceOrder.restore({
+        return OrdemDeServico.restore({
             id: raw.id,
-            customerId: raw.customerId,
-            vehicleId: raw.vehicleId,
-            status: raw.status as unknown as ServiceOrderStatus,
-            description: raw.description,
-            totalPrice: Number(raw.totalPrice),
-            services,
-            parts,
+            numero: raw.numero,
+            clienteId: raw.clienteId,
+            veiculoId: raw.veiculoId,
+            status: raw.status as any,
+            descricaoProblema: raw.descricaoProblema ?? undefined,
+            servicos,
+            pecas,
+            dataAbertura: raw.dataAbertura,
+            dataFechamento: raw.dataFechamento ?? undefined,
             createdAt: raw.createdAt,
             updatedAt: raw.updatedAt,
         });
     }
 
-    static toPrisma(serviceOrder: ServiceOrder) {
+    static toPrisma(os: OrdemDeServico) {
         return {
-            id: serviceOrder.id,
-            customerId: serviceOrder.customerId,
-            vehicleId: serviceOrder.vehicleId,
-            status: serviceOrder.status as unknown as OrderStatus,
-            description: serviceOrder.description,
-            totalPrice: new Prisma.Decimal(serviceOrder.totalPrice),
-            createdAt: serviceOrder.createdAt,
-            updatedAt: serviceOrder.updatedAt,
+            id: os.id,
+            numero: os.numero,
+            clienteId: os.clienteId,
+            veiculoId: os.veiculoId,
+            status: os.status as unknown as StatusOS,
+            descricaoProblema: os.descricaoProblema ?? null,
+            dataAbertura: os.dataAbertura,
+            dataFechamento: os.dataFechamento ?? null,
+            createdAt: os.createdAt,
+            updatedAt: os.updatedAt,
         };
     }
 }

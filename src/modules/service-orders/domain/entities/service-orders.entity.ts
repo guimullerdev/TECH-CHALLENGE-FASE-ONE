@@ -1,241 +1,233 @@
-export enum ServiceOrderStatus {
-    RECEIVED = 'RECEIVED',
-    DIAGNOSING = 'DIAGNOSING',
-    WAITING_APPROVAL = 'WAITING_APPROVAL',
-    IN_PROGRESS = 'IN_PROGRESS',
-    FINISHED = 'FINISHED',
-    DELIVERED = 'DELIVERED',
+export enum StatusOS {
+    RECEBIDA = 'RECEBIDA',
+    EM_DIAGNOSTICO = 'EM_DIAGNOSTICO',
+    AGUARDANDO_APROVACAO = 'AGUARDANDO_APROVACAO',
+    APROVADA = 'APROVADA',
+    REPROVADA = 'REPROVADA',
+    EM_EXECUCAO = 'EM_EXECUCAO',
+    FINALIZADA = 'FINALIZADA',
+    ENTREGUE = 'ENTREGUE',
 }
 
-export interface ServiceOrderServiceItem {
+export interface OsItemServico {
     id: string;
-    serviceId: string;
-    price: number;
+    servicoId: string;
+    precoUnitario: number;
+    inicioExec?: Date;
+    fimExec?: Date;
 }
 
-export interface ServiceOrderPartItem {
+export interface OsItemPeca {
     id: string;
-    partId: string;
-    quantity: number;
-    price: number;
+    pecaId: string;
+    quantidade: number;
+    precoUnitario: number;
+    utilizada: boolean;
 }
 
-export interface ServiceOrderProps {
+export interface OrdemDeServicoProps {
     id: string;
-    customerId: string;
-    vehicleId: string;
-    status: ServiceOrderStatus;
-    description: string;
-    totalPrice: number;
-    services: ServiceOrderServiceItem[];
-    parts: ServiceOrderPartItem[];
+    numero: string;
+    clienteId: string;
+    veiculoId: string;
+    status: StatusOS;
+    descricaoProblema?: string;
+    servicos: OsItemServico[];
+    pecas: OsItemPeca[];
+    dataAbertura: Date;
+    dataFechamento?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
 
-export class ServiceOrder {
-    private constructor(private readonly props: ServiceOrderProps) { }
+export class OrdemDeServico {
+    private constructor(private readonly props: OrdemDeServicoProps) {}
 
     get id() { return this.props.id; }
-    get customerId() { return this.props.customerId; }
-    get vehicleId() { return this.props.vehicleId; }
+    get numero() { return this.props.numero; }
+    get clienteId() { return this.props.clienteId; }
+    get veiculoId() { return this.props.veiculoId; }
     get status() { return this.props.status; }
-    get description() { return this.props.description; }
-    get totalPrice() { return this.props.totalPrice; }
-    get services() { return this.props.services; }
-    get parts() { return this.props.parts; }
+    get descricaoProblema() { return this.props.descricaoProblema; }
+    get servicos() { return this.props.servicos; }
+    get pecas() { return this.props.pecas; }
+    get dataAbertura() { return this.props.dataAbertura; }
+    get dataFechamento() { return this.props.dataFechamento; }
     get createdAt() { return this.props.createdAt; }
     get updatedAt() { return this.props.updatedAt; }
 
     static create(props: {
-        customerId: string;
-        vehicleId: string;
-        description: string;
-    }): ServiceOrder {
-        if (!props.customerId) throw new Error('customerId é obrigatório');
-        if (!props.vehicleId) throw new Error('vehicleId é obrigatório');
-        if (!props.description) throw new Error('description é obrigatória');
+        numero: string;
+        clienteId: string;
+        veiculoId: string;
+        descricaoProblema?: string;
+    }): OrdemDeServico {
+        if (!props.clienteId) throw new Error('clienteId é obrigatório');
+        if (!props.veiculoId) throw new Error('veiculoId é obrigatório');
+        if (!props.numero) throw new Error('numero é obrigatório');
 
-        return new ServiceOrder({
+        return new OrdemDeServico({
             id: crypto.randomUUID(),
-            customerId: props.customerId,
-            vehicleId: props.vehicleId,
-            description: props.description,
-            status: ServiceOrderStatus.RECEIVED,
-            totalPrice: 0,
-            services: [],
-            parts: [],
+            numero: props.numero,
+            clienteId: props.clienteId,
+            veiculoId: props.veiculoId,
+            descricaoProblema: props.descricaoProblema,
+            status: StatusOS.RECEBIDA,
+            servicos: [],
+            pecas: [],
+            dataAbertura: new Date(),
             createdAt: new Date(),
             updatedAt: new Date(),
         });
     }
 
-    static restore(props: ServiceOrderProps): ServiceOrder {
-        return new ServiceOrder(props);
+    static restore(props: OrdemDeServicoProps): OrdemDeServico {
+        return new OrdemDeServico(props);
     }
 
-    update(props: Partial<{ description: string }>): ServiceOrder {
-        return new ServiceOrder({
+    update(props: Partial<{ descricaoProblema: string }>): OrdemDeServico {
+        return new OrdemDeServico({
             ...this.props,
-            description: props.description ?? this.props.description,
+            descricaoProblema: props.descricaoProblema ?? this.props.descricaoProblema,
             updatedAt: new Date(),
         });
     }
 
-    addService(item: ServiceOrderServiceItem): ServiceOrder {
-        const alreadyAdded = this.props.services.some(s => s.serviceId === item.serviceId);
-        if (alreadyAdded) throw new Error('Serviço já adicionado à OS');
-        const newServices = [...this.props.services, item];
-        return new ServiceOrder({
+    addServico(item: OsItemServico): OrdemDeServico {
+        if (this.props.servicos.some(s => s.servicoId === item.servicoId)) {
+            throw new Error('Serviço já adicionado à OS');
+        }
+        return new OrdemDeServico({
             ...this.props,
-            services: newServices,
-            totalPrice: this.recalculateTotalPrice(newServices, this.props.parts),
+            servicos: [...this.props.servicos, item],
             updatedAt: new Date(),
         });
     }
 
-    removeService(serviceId: string): ServiceOrder {
-        const exists = this.props.services.some(s => s.serviceId === serviceId);
-        if (!exists) throw new Error('Serviço não encontrado na OS');
-        const newServices = this.props.services.filter(s => s.serviceId !== serviceId);
-        return new ServiceOrder({
+    removeServico(servicoId: string): OrdemDeServico {
+        if (!this.props.servicos.some(s => s.servicoId === servicoId)) {
+            throw new Error('Serviço não encontrado na OS');
+        }
+        return new OrdemDeServico({
             ...this.props,
-            services: newServices,
-            totalPrice: this.recalculateTotalPrice(newServices, this.props.parts),
+            servicos: this.props.servicos.filter(s => s.servicoId !== servicoId),
             updatedAt: new Date(),
         });
     }
 
-    addPart(item: ServiceOrderPartItem): ServiceOrder {
-        if (item.quantity < 1) throw new Error('Quantidade deve ser >= 1');
-        const alreadyAdded = this.props.parts.some(p => p.partId === item.partId);
-        if (alreadyAdded) throw new Error('Peça já adicionada à OS');
-        const newParts = [...this.props.parts, item];
-        return new ServiceOrder({
+    addPeca(item: OsItemPeca): OrdemDeServico {
+        if (item.quantidade < 1) throw new Error('Quantidade deve ser >= 1');
+        if (this.props.pecas.some(p => p.pecaId === item.pecaId)) {
+            throw new Error('Peça já adicionada à OS');
+        }
+        return new OrdemDeServico({
             ...this.props,
-            parts: newParts,
-            totalPrice: this.recalculateTotalPrice(this.props.services, newParts),
+            pecas: [...this.props.pecas, item],
             updatedAt: new Date(),
         });
     }
 
-    removePart(partId: string): ServiceOrder {
-        const exists = this.props.parts.some(p => p.partId === partId);
-        if (!exists) throw new Error('Peça não encontrada na OS');
-        const newParts = this.props.parts.filter(p => p.partId !== partId);
-        return new ServiceOrder({
+    removePeca(pecaId: string): OrdemDeServico {
+        if (!this.props.pecas.some(p => p.pecaId === pecaId)) {
+            throw new Error('Peça não encontrada na OS');
+        }
+        return new OrdemDeServico({
             ...this.props,
-            parts: newParts,
-            totalPrice: this.recalculateTotalPrice(this.props.services, newParts),
+            pecas: this.props.pecas.filter(p => p.pecaId !== pecaId),
             updatedAt: new Date(),
         });
     }
 
-    recalculateTotalPrice(
-        services: ServiceOrderServiceItem[],
-        parts: ServiceOrderPartItem[],
-    ): number {
-        const servicesTotal = services.reduce((sum, s) => sum + s.price, 0);
-        const partsTotal = parts.reduce((sum, p) => sum + p.price * p.quantity, 0);
-        return servicesTotal + partsTotal;
+    calcularTotal(): number {
+        const totalServicos = this.props.servicos.reduce((sum, s) => sum + s.precoUnitario, 0);
+        const totalPecas = this.props.pecas.reduce((sum, p) => sum + p.precoUnitario * p.quantidade, 0);
+        return totalServicos + totalPecas;
     }
 
-    startDiagnosis(): ServiceOrder {
-        if (this.props.status !== ServiceOrderStatus.RECEIVED) {
+    registrarExecucaoServico(itemId: string, inicio: Date, fim: Date): OrdemDeServico {
+        const item = this.props.servicos.find(s => s.id === itemId);
+        if (!item) throw new Error('Item de serviço não encontrado na OS');
+        const updatedServicos = this.props.servicos.map(s =>
+            s.id === itemId ? { ...s, inicioExec: inicio, fimExec: fim } : s,
+        );
+        return new OrdemDeServico({ ...this.props, servicos: updatedServicos, updatedAt: new Date() });
+    }
+
+    marcarPecaUtilizada(itemId: string): OrdemDeServico {
+        const item = this.props.pecas.find(p => p.id === itemId);
+        if (!item) throw new Error('Item de peça não encontrado na OS');
+        const updatedPecas = this.props.pecas.map(p =>
+            p.id === itemId ? { ...p, utilizada: true } : p,
+        );
+        return new OrdemDeServico({ ...this.props, pecas: updatedPecas, updatedAt: new Date() });
+    }
+
+    iniciarDiagnostico(): OrdemDeServico {
+        if (this.props.status !== StatusOS.RECEBIDA) {
             throw new InvalidTransitionError(
-                `Transição inválida: ${this.props.status} → DIAGNOSING. Status esperado: RECEIVED`,
+                `Transição inválida: ${this.props.status} → EM_DIAGNOSTICO. Status esperado: RECEBIDA`,
             );
         }
-        return new ServiceOrder({
+        return new OrdemDeServico({ ...this.props, status: StatusOS.EM_DIAGNOSTICO, updatedAt: new Date() });
+    }
+
+    concluirDiagnostico(): OrdemDeServico {
+        if (this.props.status !== StatusOS.EM_DIAGNOSTICO) {
+            throw new InvalidTransitionError(
+                `Transição inválida: ${this.props.status} → AGUARDANDO_APROVACAO. Status esperado: EM_DIAGNOSTICO`,
+            );
+        }
+        return new OrdemDeServico({ ...this.props, status: StatusOS.AGUARDANDO_APROVACAO, updatedAt: new Date() });
+    }
+
+    aprovarOrcamento(): OrdemDeServico {
+        if (this.props.status !== StatusOS.AGUARDANDO_APROVACAO) {
+            throw new InvalidTransitionError(
+                `Transição inválida: ${this.props.status} → APROVADA. Status esperado: AGUARDANDO_APROVACAO`,
+            );
+        }
+        return new OrdemDeServico({ ...this.props, status: StatusOS.APROVADA, updatedAt: new Date() });
+    }
+
+    reprovarOrcamento(): OrdemDeServico {
+        if (this.props.status !== StatusOS.AGUARDANDO_APROVACAO) {
+            throw new InvalidTransitionError(
+                `Transição inválida: ${this.props.status} → REPROVADA. Status esperado: AGUARDANDO_APROVACAO`,
+            );
+        }
+        return new OrdemDeServico({ ...this.props, status: StatusOS.REPROVADA, updatedAt: new Date() });
+    }
+
+    iniciarExecucao(): OrdemDeServico {
+        if (this.props.status !== StatusOS.APROVADA) {
+            throw new InvalidTransitionError(
+                `Transição inválida: ${this.props.status} → EM_EXECUCAO. Status esperado: APROVADA`,
+            );
+        }
+        return new OrdemDeServico({ ...this.props, status: StatusOS.EM_EXECUCAO, updatedAt: new Date() });
+    }
+
+    finalizarExecucao(): OrdemDeServico {
+        if (this.props.status !== StatusOS.EM_EXECUCAO) {
+            throw new InvalidTransitionError(
+                `Transição inválida: ${this.props.status} → FINALIZADA. Status esperado: EM_EXECUCAO`,
+            );
+        }
+        return new OrdemDeServico({
             ...this.props,
-            status: ServiceOrderStatus.DIAGNOSING,
+            status: StatusOS.FINALIZADA,
+            dataFechamento: new Date(),
             updatedAt: new Date(),
         });
     }
 
-    finishDiagnosis(): ServiceOrder {
-        if (this.props.status !== ServiceOrderStatus.DIAGNOSING) {
+    entregar(): OrdemDeServico {
+        if (this.props.status !== StatusOS.FINALIZADA) {
             throw new InvalidTransitionError(
-                `Transição inválida: ${this.props.status} → WAITING_APPROVAL. Status esperado: DIAGNOSING`,
+                `Transição inválida: ${this.props.status} → ENTREGUE. Status esperado: FINALIZADA`,
             );
         }
-        const totalPrice = this.recalculateTotalPrice(this.props.services, this.props.parts);
-        return new ServiceOrder({
-            ...this.props,
-            status: ServiceOrderStatus.WAITING_APPROVAL,
-            totalPrice,
-            updatedAt: new Date(),
-        });
-    }
-
-    validateBudget(): void {
-        if (this.props.status !== ServiceOrderStatus.WAITING_APPROVAL) {
-            throw new InvalidTransitionError(
-                `Orçamento só pode ser enviado no status WAITING_APPROVAL. Status atual: ${this.props.status}`,
-            );
-        }
-        if (this.props.totalPrice <= 0) {
-            throw new InvalidTransitionError(
-                'Orçamento não pode ser enviado com totalPrice igual a zero',
-            );
-        }
-    }
-
-    approveBudget(): ServiceOrder {
-        if (this.props.status !== ServiceOrderStatus.WAITING_APPROVAL) {
-            throw new InvalidTransitionError(
-                `Transição inválida: ${this.props.status} → IN_PROGRESS. Status esperado: WAITING_APPROVAL`,
-            );
-        }
-        if (this.props.totalPrice <= 0) {
-            throw new InvalidTransitionError(
-                'Não é possível aprovar orçamento com valor zero',
-            );
-        }
-        return new ServiceOrder({
-            ...this.props,
-            status: ServiceOrderStatus.IN_PROGRESS,
-            updatedAt: new Date(),
-        });
-    }
-
-    rejectBudget(): ServiceOrder {
-        if (this.props.status !== ServiceOrderStatus.WAITING_APPROVAL) {
-            throw new InvalidTransitionError(
-                `Transição inválida: ${this.props.status} → RECEIVED. Status esperado: WAITING_APPROVAL`,
-            );
-        }
-        return new ServiceOrder({
-            ...this.props,
-            status: ServiceOrderStatus.RECEIVED,
-            updatedAt: new Date(),
-        });
-    }
-
-    finish(): ServiceOrder {
-        if (this.props.status !== ServiceOrderStatus.IN_PROGRESS) {
-            throw new InvalidTransitionError(
-                `Transição inválida: ${this.props.status} → FINISHED. Status esperado: IN_PROGRESS`,
-            );
-        }
-        return new ServiceOrder({
-            ...this.props,
-            status: ServiceOrderStatus.FINISHED,
-            updatedAt: new Date(),
-        });
-    }
-
-    deliver(): ServiceOrder {
-        if (this.props.status !== ServiceOrderStatus.FINISHED) {
-            throw new InvalidTransitionError(
-                `Transição inválida: ${this.props.status} → DELIVERED. Status esperado: FINISHED`,
-            );
-        }
-        return new ServiceOrder({
-            ...this.props,
-            status: ServiceOrderStatus.DELIVERED,
-            updatedAt: new Date(),
-        });
+        return new OrdemDeServico({ ...this.props, status: StatusOS.ENTREGUE, updatedAt: new Date() });
     }
 }
 

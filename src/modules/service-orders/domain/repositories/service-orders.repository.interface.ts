@@ -1,14 +1,11 @@
-import { ServiceOrder, ServiceOrderStatus } from '../entities/service-orders.entity';
+import { OrdemDeServico, StatusOS } from '../entities/service-orders.entity';
 
-export interface ServiceOrderRepository {
-    findById(id: string): Promise<ServiceOrder | null>;
-    findAll(status?: ServiceOrderStatus): Promise<ServiceOrder[]>;
-    create(serviceOrder: ServiceOrder): Promise<ServiceOrder>;
-    save(serviceOrder: ServiceOrder): Promise<ServiceOrder>;
-    delete(id: string): Promise<void>;
-    addService(serviceOrderId: string, serviceId: string, newTotalPrice: number): Promise<void>;
-    removeService(serviceOrderId: string, serviceId: string, newTotalPrice: number): Promise<void>;
-    addPart(serviceOrderId: string, partId: string, quantity: number, newTotalPrice: number): Promise<void>;
-    removePart(serviceOrderId: string, partId: string, newTotalPrice: number): Promise<void>;
-    reserveStockAndApprove(serviceOrder: ServiceOrder): Promise<ServiceOrder>;
+export interface IOrdemDeServicoRepository {
+    findById(id: string): Promise<OrdemDeServico | null>;
+    findAll(filters?: { status?: StatusOS; clienteId?: string; veiculoId?: string }): Promise<OrdemDeServico[]>;
+    create(os: OrdemDeServico): Promise<OrdemDeServico>;
+    update(os: OrdemDeServico): Promise<OrdemDeServico>;
+    generateNumero(): Promise<string>;
 }
+
+export const ORDEM_DE_SERVICO_REPOSITORY = Symbol('IOrdemDeServicoRepository');

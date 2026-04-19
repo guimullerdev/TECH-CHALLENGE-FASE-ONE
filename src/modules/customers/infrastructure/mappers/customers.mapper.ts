@@ -1,27 +1,32 @@
-import { Customer as PrismaCustomer } from '@prisma/client';
+import { Cliente as PrismaCliente } from '@prisma/client';
+import { Cliente } from '../../domain/entities/customers.entity';
 
-import { Customer } from '../../domain/entities/customers.entity';
-
-export class CustomerMapper {
-    static toDomain(raw: PrismaCustomer): Customer {
-        return Customer.restore({
+export class ClienteMapper {
+    static toDomain(raw: PrismaCliente): Cliente {
+        return Cliente.restore({
             id: raw.id,
-            name: raw.name,
-            email: raw.email,
+            nome: raw.nome,
+            cpf: raw.cpf,
+            telefone: raw.telefone ?? undefined,
+            email: raw.email ?? undefined,
+            endereco: raw.endereco ?? undefined,
+            ativo: raw.ativo,
             createdAt: raw.createdAt,
-            document: raw.document,
-            phone: raw.phone,
+            updatedAt: raw.updatedAt,
         });
     }
 
-    static toPrisma(customer: Customer): PrismaCustomer {
+    static toPrisma(cliente: Cliente): Omit<PrismaCliente, never> {
         return {
-            id: customer.id,
-            name: customer.name,
-            email: customer.email,
-            createdAt: customer.createdAt,
-            document: customer.document,
-            phone: customer.phone,
+            id: cliente.id,
+            nome: cliente.nome,
+            cpf: cliente.cpf,
+            telefone: cliente.telefone ?? null,
+            email: cliente.email ?? null,
+            endereco: cliente.endereco ?? null,
+            ativo: cliente.ativo,
+            createdAt: cliente.createdAt,
+            updatedAt: cliente.updatedAt,
         };
     }
 }

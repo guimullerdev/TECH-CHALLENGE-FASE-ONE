@@ -1,46 +1,81 @@
-export class Customer {
+export class Cliente {
     private constructor(
         public readonly id: string,
-        public readonly name: string,
-        public readonly email: string,
+        public readonly nome: string,
+        public readonly cpf: string,
+        public readonly telefone: string | undefined,
+        public readonly email: string | undefined,
+        public readonly endereco: string | undefined,
+        public readonly ativo: boolean,
         public readonly createdAt: Date,
-        public readonly document: string,
-        public readonly phone: string,
-    ) { }
+        public readonly updatedAt: Date,
+    ) {}
 
-    static create(props: { name: string; email: string; document: string; phone: string }): Customer {
-        if (!props.email.includes('@')) throw new Error('Email inválido');
-
-        return new Customer(
+    static create(props: {
+        nome: string;
+        cpf: string;
+        telefone?: string;
+        email?: string;
+        endereco?: string;
+    }): Cliente {
+        if (props.email && !props.email.includes('@')) throw new Error('Email inválido');
+        return new Cliente(
             crypto.randomUUID(),
-            props.name,
+            props.nome,
+            props.cpf,
+            props.telefone,
             props.email,
+            props.endereco,
+            true,
             new Date(),
-            props.document,
-            props.phone,
+            new Date(),
         );
     }
 
     static restore(props: {
         id: string;
-        name: string;
-        email: string;
+        nome: string;
+        cpf: string;
+        telefone?: string;
+        email?: string;
+        endereco?: string;
+        ativo: boolean;
         createdAt: Date;
-        document: string;
-        phone: string;
-    }): Customer {
-        return new Customer(props.id, props.name, props.email, props.createdAt, props.document, props.phone);
+        updatedAt: Date;
+    }): Cliente {
+        return new Cliente(
+            props.id,
+            props.nome,
+            props.cpf,
+            props.telefone,
+            props.email,
+            props.endereco,
+            props.ativo,
+            props.createdAt,
+            props.updatedAt,
+        );
     }
 
-    update(props: Partial<{ name: string; email: string; document: string; phone: string }>): Customer {
+    update(props: Partial<{ nome: string; telefone: string; email: string; endereco: string }>): Cliente {
         if (props.email && !props.email.includes('@')) throw new Error('Email inválido');
-        return new Customer(
+        return new Cliente(
             this.id,
-            props.name ?? this.name,
+            props.nome ?? this.nome,
+            this.cpf,
+            props.telefone ?? this.telefone,
             props.email ?? this.email,
+            props.endereco ?? this.endereco,
+            this.ativo,
             this.createdAt,
-            props.document ?? this.document,
-            props.phone ?? this.phone,
+            new Date(),
         );
+    }
+
+    deactivate(): Cliente {
+        return new Cliente(this.id, this.nome, this.cpf, this.telefone, this.email, this.endereco, false, this.createdAt, new Date());
+    }
+
+    reactivate(): Cliente {
+        return new Cliente(this.id, this.nome, this.cpf, this.telefone, this.email, this.endereco, true, this.createdAt, new Date());
     }
 }

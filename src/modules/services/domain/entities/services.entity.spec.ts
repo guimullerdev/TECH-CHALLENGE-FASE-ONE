@@ -1,59 +1,68 @@
-import { Services } from './services.entity';
+import { Servico } from './services.entity';
 
-describe('Services entity', () => {
+describe('Servico entity', () => {
     describe('create()', () => {
-        it('creates a service with correct properties', () => {
-            const svc = Services.create({ name: 'Troca de óleo', price: 150, estimatedTime: 30 });
-            expect(svc.name).toBe('Troca de óleo');
-            expect(svc.price).toBe(150);
-            expect(svc.estimatedTime).toBe(30);
-            expect(svc.id).toBeDefined();
+        it('creates a servico with correct properties', () => {
+            const s = Servico.create({ nome: 'Troca de óleo', precoBase: 150 });
+            expect(s.nome).toBe('Troca de óleo');
+            expect(s.precoBase).toBe(150);
+            expect(s.id).toBeDefined();
+            expect(s.ativo).toBe(true);
         });
 
-        it('accepts optional description', () => {
-            const svc = Services.create({ name: 'X', price: 10, estimatedTime: 10, description: 'Desc' });
-            expect(svc.description).toBe('Desc');
+        it('accepts optional descricao', () => {
+            const s = Servico.create({ nome: 'X', precoBase: 10, descricao: 'Desc' });
+            expect(s.descricao).toBe('Desc');
         });
 
-        it('throws when price is negative', () => {
-            expect(() => Services.create({ name: 'X', price: -1, estimatedTime: 10 })).toThrow('negativo');
+        it('throws when precoBase is negative', () => {
+            expect(() => Servico.create({ nome: 'X', precoBase: -1 })).toThrow('negativo');
         });
 
-        it('throws when estimatedTime < 1', () => {
-            expect(() => Services.create({ name: 'X', price: 10, estimatedTime: 0 })).toThrow('1 minuto');
-        });
-
-        it('accepts price = 0 and estimatedTime = 1', () => {
-            const svc = Services.create({ name: 'X', price: 0, estimatedTime: 1 });
-            expect(svc.price).toBe(0);
-            expect(svc.estimatedTime).toBe(1);
+        it('accepts precoBase = 0', () => {
+            const s = Servico.create({ nome: 'X', precoBase: 0 });
+            expect(s.precoBase).toBe(0);
         });
     });
 
     describe('restore()', () => {
         it('restores with a given id', () => {
-            const svc = Services.restore({ id: 'svc-1', name: 'X', price: 10, estimatedTime: 10 });
-            expect(svc.id).toBe('svc-1');
+            const date = new Date();
+            const s = Servico.restore({ id: 'svc-1', nome: 'X', precoBase: 10, ativo: true, createdAt: date, updatedAt: date });
+            expect(s.id).toBe('svc-1');
         });
     });
 
     describe('update()', () => {
         it('updates fields partially', () => {
-            const svc = Services.create({ name: 'Old', price: 100, estimatedTime: 30 });
-            const updated = svc.update({ name: 'New', price: 200 });
-            expect(updated.name).toBe('New');
-            expect(updated.price).toBe(200);
-            expect(updated.estimatedTime).toBe(30);
+            const s = Servico.create({ nome: 'Old', precoBase: 100 });
+            const updated = s.update({ nome: 'New', precoBase: 200 });
+            expect(updated.nome).toBe('New');
+            expect(updated.precoBase).toBe(200);
         });
 
-        it('throws when updated price is negative', () => {
-            const svc = Services.create({ name: 'X', price: 10, estimatedTime: 10 });
-            expect(() => svc.update({ price: -1 })).toThrow('negativo');
+        it('throws when updated precoBase is negative', () => {
+            const s = Servico.create({ nome: 'X', precoBase: 10 });
+            expect(() => s.update({ precoBase: -1 })).toThrow('negativo');
+        });
+    });
+
+    describe('deactivate()', () => {
+        it('sets ativo to false', () => {
+            const s = Servico.create({ nome: 'X', precoBase: 10 });
+            expect(s.deactivate().ativo).toBe(false);
         });
 
-        it('throws when updated estimatedTime < 1', () => {
-            const svc = Services.create({ name: 'X', price: 10, estimatedTime: 10 });
-            expect(() => svc.update({ estimatedTime: 0 })).toThrow('1 minuto');
+        it('preserves id', () => {
+            const s = Servico.create({ nome: 'X', precoBase: 10 });
+            expect(s.deactivate().id).toBe(s.id);
+        });
+    });
+
+    describe('reactivate()', () => {
+        it('sets ativo back to true', () => {
+            const s = Servico.create({ nome: 'X', precoBase: 10 }).deactivate();
+            expect(s.reactivate().ativo).toBe(true);
         });
     });
 });

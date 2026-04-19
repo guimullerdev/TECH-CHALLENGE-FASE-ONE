@@ -1,8 +1,10 @@
-import { Services } from '../entities/services.entity';
+import { Servico } from '../entities/services.entity';
 
-export abstract class ServicesRepository {
-    abstract findById(id: string): Promise<Services | null>;
-    abstract findAll(): Promise<Services[]>;
-    abstract save(entity: Services): Promise<void>;
-    abstract delete(id: string): Promise<void>;
+export interface IServicoRepository {
+    findById(id: string): Promise<Servico | null>;
+    findAll(filters?: { ativo?: boolean }): Promise<Servico[]>;
+    create(servico: Servico): Promise<Servico>;
+    update(servico: Servico): Promise<Servico>;
 }
+
+export const SERVICO_REPOSITORY = Symbol('IServicoRepository');

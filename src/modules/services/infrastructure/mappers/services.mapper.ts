@@ -1,23 +1,28 @@
-import { Services } from '../../domain/entities/services.entity';
+import { Servico as PrismaServico } from '@prisma/client';
+import { Servico } from '../../domain/entities/services.entity';
 
-export class ServicesMapper {
-    static toDomain(raw: any): Services {
-        return Services.restore({
+export class ServicoMapper {
+    static toDomain(raw: PrismaServico): Servico {
+        return Servico.restore({
             id: raw.id,
-            name: raw.name,
-            description: raw.description ?? undefined,
-            price: Number(raw.price),
-            estimatedTime: raw.estimatedTime,
+            nome: raw.nome,
+            precoBase: Number(raw.precoBase),
+            descricao: raw.descricao ?? undefined,
+            ativo: raw.ativo,
+            createdAt: raw.createdAt,
+            updatedAt: raw.updatedAt,
         });
     }
 
-    static toPersistence(entity: Services): any {
+    static toPrisma(servico: Servico): Omit<PrismaServico, never> {
         return {
-            id: entity.id,
-            name: entity.name,
-            description: entity.description,
-            price: entity.price,
-            estimatedTime: entity.estimatedTime,
+            id: servico.id,
+            nome: servico.nome,
+            precoBase: servico.precoBase as any,
+            descricao: servico.descricao ?? null,
+            ativo: servico.ativo,
+            createdAt: servico.createdAt,
+            updatedAt: servico.updatedAt,
         };
     }
 }

@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,86 +9,207 @@ datasource db {
   provider = "postgresql"
 }
 
-model Customer {
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum StatusOS {
+  RECEBIDA
+  EM_DIAGNOSTICO
+  AGUARDANDO_APROVACAO
+  APROVADA
+  REPROVADA
+  EM_EXECUCAO
+  FINALIZADA
+  ENTREGUE
+}
+
+enum TipoMovimentacao {
+  ENTRADA
+  BAIXA
+  RESERVA
+  LIBERACAO_RESERVA
+}
+
+enum StatusOrcamento {
+  GERADO
+  ENVIADO
+  APROVADO
+  REPROVADO
+}
+
+// ---------------------------------------------------------------------------
+// Cadastros
+// ---------------------------------------------------------------------------
+
+model Cliente {
   id        String   @id @default(uuid())
-  name      String
-  document  String   @unique // CPF or CNPJ
-  email     String
-  phone     String
-  vehicles  Vehicle[]
-  orders    ServiceOrder[]
-  createdAt DateTime @default(now())
+  nome      String
+  cpf       String   @unique
+  telefone  String?
+  email     String?
+  endereco  String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  veiculos        Veiculo[]
+  ordensDeServico OrdemDeServico[]
+
+  @@map("clientes")
 }
 
-model Vehicle {
-  id         String   @id @default(uuid())
-  plate      String   @unique
-  brand      String
-  model      String
-  year       Int
-  customerId String
-  customer   Customer @relation(fields: [customerId], references: [id])
-  orders     ServiceOrder[]
+model Veiculo {
+  id        String   @id @default(uuid())
+  clienteId String   @map("cliente_id")
+  placa     String   @unique
+  marca     String
+  modelo    String
+  ano       Int?
+  cor       String?
+  kmAtual   Int?     @map("km_atual")
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  cliente         Cliente          @relation(fields: [clienteId], references: [id])
+  ordensDeServico OrdemDeServico[]
+
+  @@map("veiculos")
 }
 
-model Service {
-  id            String             @id @default(uuid())
-  name          String
-  description   String?
-  price         Decimal
-  estimatedTime Int                // minutes
-  orderServices OrderService[]
+model Servico {
+  id        String   @id @default(uuid())
+  nome      String
+  descricao String?
+  precoBase Decimal  @map("preco_base") @db.Decimal(10, 2)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  osItensServico OsItemServico[]
+
+  @@map("servicos")
 }
 
-model Part {
-  id           String      @id @default(uuid())
-  name         String
-  description  String?
-  price        Decimal
-  stockQty     Int         @default(0)
-  orderParts   OrderPart[]
+// ---------------------------------------------------------------------------
+// Estoque
+// ---------------------------------------------------------------------------
+
+model Peca {
+  id            String   @id @default(uuid())
+  nome          String
+  codigo        String?  @unique
+  descricao     String?
+  precoUnitario Decimal  @map("preco_unitario") @db.Decimal(10, 2)
+  qtdTotal      Int      @default(0) @map("qtd_total")
+  qtdDisponivel Int      @default(0) @map("qtd_disponivel")
+  qtdReservada  Int      @default(0) @map("qtd_reservada")
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  osItensPeca          OsItemPeca[]
+  movimentacoesEstoque MovimentacaoEstoque[]
+
+  @@map("pecas")
 }
 
-model ServiceOrder {
-  id           String        @id @default(uuid())
-  customerId   String
-  vehicleId    String
-  description  String
-  status       OrderStatus   @default(RECEIVED)
-  totalPrice   Decimal       @default(0)
-  customer     Customer      @relation(fields: [customerId], references: [id])
-  vehicle      Vehicle       @relation(fields: [vehicleId], references: [id])
-  services     OrderService[]
-  parts        OrderPart[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+model MovimentacaoEstoque {
+  id         String           @id @default(uuid())
+  pecaId     String           @map("peca_id")
+  tipo       TipoMovimentacao
+  quantidade Int
+  osId       String?          @map("os_id")
+  observacao String?
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  peca Peca            @relation(fields: [pecaId], references: [id])
+  os   OrdemDeServico? @relation(fields: [osId], references: [id])
+
+  @@map("movimentacoes_estoque")
 }
 
-model OrderService {
-  id             String       @id @default(uuid())
-  serviceOrderId String
-  serviceId      String
-  serviceOrder   ServiceOrder @relation(fields: [serviceOrderId], references: [id])
-  service        Service      @relation(fields: [serviceId], references: [id])
+// ---------------------------------------------------------------------------
+// Ordem de Serviço
+// ---------------------------------------------------------------------------
+
+model OrdemDeServico {
+  id                String    @id @default(uuid())
+  numero            String    @unique
+  clienteId         String    @map("cliente_id")
+  veiculoId         String    @map("veiculo_id")
+  status            StatusOS  @default(RECEBIDA)
+  descricaoProblema String?   @map("descricao_problema")
+  dataAbertura      DateTime  @default(now()) @map("data_abertura")
+  dataFechamento    DateTime? @map("data_fechamento")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  cliente        Cliente               @relation(fields: [clienteId], references: [id])
+  veiculo        Veiculo               @relation(fields: [veiculoId], references: [id])
+  osItensServico OsItemServico[]
+  osItensPeca    OsItemPeca[]
+  orcamento      Orcamento?
+  movimentacoes  MovimentacaoEstoque[]
+
+  @@map("ordens_de_servico")
 }
 
-model OrderPart {
-  id             String       @id @default(uuid())
-  serviceOrderId String
-  partId         String
-  quantity       Int
-  serviceOrder   ServiceOrder @relation(fields: [serviceOrderId], references: [id])
-  part           Part         @relation(fields: [partId], references: [id])
+model OsItemServico {
+  id            String    @id @default(uuid())
+  osId          String    @map("os_id")
+  servicoId     String    @map("servico_id")
+  precoUnitario Decimal   @map("preco_unitario") @db.Decimal(10, 2)
+  inicioExec    DateTime? @map("inicio_exec")
+  fimExec       DateTime? @map("fim_exec")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  os      OrdemDeServico @relation(fields: [osId], references: [id])
+  servico Servico        @relation(fields: [servicoId], references: [id])
+
+  @@map("os_itens_servico")
 }
 
-enum OrderStatus {
-  RECEIVED
-  DIAGNOSING
-  WAITING_APPROVAL
-  IN_PROGRESS
-  FINISHED
-  DELIVERED
+model OsItemPeca {
+  id            String   @id @default(uuid())
+  osId          String   @map("os_id")
+  pecaId        String   @map("peca_id")
+  quantidade    Int
+  precoUnitario Decimal  @map("preco_unitario") @db.Decimal(10, 2)
+  utilizada     Boolean  @default(false)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  os   OrdemDeServico @relation(fields: [osId], references: [id])
+  peca Peca           @relation(fields: [pecaId], references: [id])
+
+  @@map("os_itens_peca")
 }
+
+// ---------------------------------------------------------------------------
+// Orçamento
+// ---------------------------------------------------------------------------
+
+model Orcamento {
+  id           String          @id @default(uuid())
+  osId         String          @unique @map("os_id")
+  status       StatusOrcamento @default(GERADO)
+  valorTotal   Decimal         @map("valor_total") @db.Decimal(10, 2)
+  dataGeracao  DateTime        @default(now()) @map("data_geracao")
+  dataEnvio    DateTime?       @map("data_envio")
+  dataResposta DateTime?       @map("data_resposta")
+  observacoes  String?
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+
+  os OrdemDeServico @relation(fields: [osId], references: [id])
+
+  @@map("orcamentos")
+}
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
 
 model User {
   id               String   @id @default(uuid())

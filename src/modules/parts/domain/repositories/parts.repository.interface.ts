@@ -1,9 +1,11 @@
-import { Part } from "../entities/parts.entity";
+import { Peca } from '../entities/parts.entity';
 
-export interface PartRepository {
-    findById(id: string): Promise<Part | null>;
-    findAll(): Promise<Part[]>;
-    create(part: Part): Promise<Part>;
-    save(part: Part): Promise<Part>;
-    delete(id: string): Promise<void>;
+export interface IPecaRepository {
+    findById(id: string): Promise<Peca | null>;
+    findByCodigo(codigo: string): Promise<Peca | null>;
+    findAll(filters?: { ativo?: boolean; disponivel?: boolean }): Promise<Peca[]>;
+    create(peca: Peca): Promise<Peca>;
+    update(peca: Peca): Promise<Peca>;
 }
+
+export const PECA_REPOSITORY = Symbol('IPecaRepository');

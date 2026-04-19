@@ -1,23 +1,36 @@
-import { Part } from '../../domain/entities/parts.entity';
+import { Peca as PrismaPeca } from '@prisma/client';
+import { Peca } from '../../domain/entities/parts.entity';
 
-export class PartMapper {
-    static toDomain(raw: any): Part {
-        return Part.restore({
+export class PecaMapper {
+    static toDomain(raw: PrismaPeca): Peca {
+        return Peca.restore({
             id: raw.id,
-            name: raw.name,
-            description: raw.description ?? undefined,
-            price: Number(raw.price),
-            stockQty: raw.stockQty,
+            nome: raw.nome,
+            precoUnitario: Number(raw.precoUnitario),
+            qtdTotal: raw.qtdTotal,
+            qtdDisponivel: raw.qtdDisponivel,
+            qtdReservada: raw.qtdReservada,
+            codigo: raw.codigo ?? undefined,
+            descricao: raw.descricao ?? undefined,
+            ativo: raw.ativo,
+            createdAt: raw.createdAt,
+            updatedAt: raw.updatedAt,
         });
     }
 
-    static toPrisma(part: Part): any {
+    static toPrisma(peca: Peca): Omit<PrismaPeca, never> {
         return {
-            id: part.id,
-            name: part.name,
-            description: part.description ?? null,
-            price: part.price,
-            stockQty: part.stockQty,
+            id: peca.id,
+            nome: peca.nome,
+            precoUnitario: peca.precoUnitario as any,
+            qtdTotal: peca.qtdTotal,
+            qtdDisponivel: peca.qtdDisponivel,
+            qtdReservada: peca.qtdReservada,
+            codigo: peca.codigo ?? null,
+            descricao: peca.descricao ?? null,
+            ativo: peca.ativo,
+            createdAt: peca.createdAt,
+            updatedAt: peca.updatedAt,
         };
     }
 }

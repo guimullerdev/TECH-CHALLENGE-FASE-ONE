@@ -1,46 +1,48 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable } from '@nestjs/common';
 
-import { PrismaService } from "src/prisma/prisma.service";
-
-import { VehicleRepository } from "../../domain/repositories/vehicle.repository.interface";
-import { VehicleMapper } from "../mappers/vehicle.mapper";
-import { Vehicle } from "../../domain/entities/vehicle.entity";
+import { PrismaService } from 'src/prisma/prisma.service';
+import { IVeiculoRepository } from '../../domain/repositories/vehicle.repository.interface';
+import { VeiculoMapper } from '../mappers/vehicle.mapper';
+import { Veiculo } from '../../domain/entities/vehicle.entity';
 
 @Injectable()
-export class VehiclePrismaRepository implements VehicleRepository {
-    constructor(private prisma: PrismaService) { }
+export class VeiculoPrismaRepository implements IVeiculoRepository {
+    constructor(private prisma: PrismaService) {}
 
-    async findById(id: string): Promise<Vehicle | null> {
-        const raw = await this.prisma.vehicle.findUnique({ where: { id } });
+    async findById(id: string): Promise<Veiculo | null> {
+        const raw = await this.prisma.veiculo.findUnique({ where: { id } });
         if (!raw) return null;
-        return VehicleMapper.toDomain(raw);
+        return VeiculoMapper.toDomain(raw);
     }
 
-    async findByPlate(plate: string): Promise<Vehicle | null> {
-        const raw = await this.prisma.vehicle.findUnique({ where: { plate } });
+    async findByPlaca(placa: string): Promise<Veiculo | null> {
+        const raw = await this.prisma.veiculo.findUnique({ where: { placa } });
         if (!raw) return null;
-        return VehicleMapper.toDomain(raw);
+        return VeiculoMapper.toDomain(raw);
     }
 
-    async findAll(): Promise<Vehicle[]> {
-        const raws = await this.prisma.vehicle.findMany({ orderBy: { plate: 'asc' } });
-        return raws.map(VehicleMapper.toDomain);
-    }
-
-    async create(vehicle: Vehicle): Promise<Vehicle> {
-        const raw = await this.prisma.vehicle.create({ data: VehicleMapper.toPrisma(vehicle) });
-        return VehicleMapper.toDomain(raw);
-    }
-
-    async save(vehicle: Vehicle): Promise<Vehicle> {
-        const raw = await this.prisma.vehicle.update({
-            where: { id: vehicle.id },
-            data: VehicleMapper.toPrisma(vehicle),
+    async findAll(filters?: { clienteId?: string; placa?: string; ativo?: boolean }): Promise<Veiculo[]> {
+        const raws = await this.prisma.veiculo.findMany({
+            where: {
+                ...(filters?.clienteId ? { clienteId: filters.clienteId } : {}),
+                ...(filters?.placa ? { placa: { contains: filters.placa, mode: 'insensitive' } } : {}),
+                ...(filters?.ativo !== undefined ? { ativo: filters.ativo } : {}),
+            },
+            orderBy: { placa: 'asc' },
         });
-        return VehicleMapper.toDomain(raw);
+        return raws.map(VeiculoMapper.toDomain);
     }
 
-    async delete(id: string): Promise<void> {
-        await this.prisma.vehicle.delete({ where: { id } });
+    async create(veiculo: Veiculo): Promise<Veiculo> {
+        const raw = await this.prisma.veiculo.create({ data: VeiculoMapper.toPrisma(veiculo) });
+        return VeiculoMapper.toDomain(raw);
+    }
+
+    async update(veiculo: Veiculo): Promise<Veiculo> {
+        const raw = await this.prisma.veiculo.update({
+            where: { id: veiculo.id },
+            data: VeiculoMapper.toPrisma(veiculo),
+        });
+        return VeiculoMapper.toDomain(raw);
     }
 }

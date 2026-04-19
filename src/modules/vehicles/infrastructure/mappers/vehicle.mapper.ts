@@ -1,25 +1,36 @@
-import { Vehicle } from '../../domain/entities/vehicle.entity';
+import { Veiculo as PrismaVeiculo } from '@prisma/client';
+import { Veiculo } from '../../domain/entities/vehicle.entity';
 
-export class VehicleMapper {
-    static toDomain(raw: any): Vehicle {
-        return Vehicle.restore({
+export class VeiculoMapper {
+    static toDomain(raw: PrismaVeiculo): Veiculo {
+        return Veiculo.restore({
             id: raw.id,
-            plate: raw.plate,
-            brand: raw.brand,
-            model: raw.model,
-            year: raw.year,
-            customerId: raw.customerId,
+            placa: raw.placa,
+            marca: raw.marca,
+            modelo: raw.modelo,
+            clienteId: raw.clienteId,
+            ano: raw.ano ?? undefined,
+            cor: raw.cor ?? undefined,
+            kmAtual: raw.kmAtual ?? undefined,
+            ativo: raw.ativo,
+            createdAt: raw.createdAt,
+            updatedAt: raw.updatedAt,
         });
     }
 
-    static toPrisma(vehicle: Vehicle): any {
+    static toPrisma(veiculo: Veiculo): Omit<PrismaVeiculo, never> {
         return {
-            id: vehicle.id,
-            plate: vehicle.plate,
-            brand: vehicle.brand,
-            model: vehicle.model,
-            year: vehicle.year,
-            customerId: vehicle.customerId,
+            id: veiculo.id,
+            placa: veiculo.placa,
+            marca: veiculo.marca,
+            modelo: veiculo.modelo,
+            clienteId: veiculo.clienteId,
+            ano: veiculo.ano ?? null,
+            cor: veiculo.cor ?? null,
+            kmAtual: veiculo.kmAtual ?? null,
+            ativo: veiculo.ativo,
+            createdAt: veiculo.createdAt,
+            updatedAt: veiculo.updatedAt,
         };
     }
 }

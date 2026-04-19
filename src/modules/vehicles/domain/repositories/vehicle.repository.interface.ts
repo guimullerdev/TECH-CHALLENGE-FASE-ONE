@@ -1,10 +1,11 @@
-import { Vehicle } from "../entities/vehicle.entity";
+import { Veiculo } from '../entities/vehicle.entity';
 
-export interface VehicleRepository {
-    findById(id: string): Promise<Vehicle | null>;
-    findByPlate(plate: string): Promise<Vehicle | null>;
-    findAll(): Promise<Vehicle[]>;
-    create(vehicle: Vehicle): Promise<Vehicle>;
-    save(vehicle: Vehicle): Promise<Vehicle>;
-    delete(id: string): Promise<void>;
+export interface IVeiculoRepository {
+    findById(id: string): Promise<Veiculo | null>;
+    findByPlaca(placa: string): Promise<Veiculo | null>;
+    findAll(filters?: { clienteId?: string; placa?: string; ativo?: boolean }): Promise<Veiculo[]>;
+    create(veiculo: Veiculo): Promise<Veiculo>;
+    update(veiculo: Veiculo): Promise<Veiculo>;
 }
+
+export const VEICULO_REPOSITORY = Symbol('IVeiculoRepository');

@@ -1,55 +1,97 @@
-export class Vehicle {
+export class Veiculo {
     private constructor(
         public readonly id: string,
-        public readonly plate: string,
-        public readonly brand: string,
-        public readonly model: string,
-        public readonly year: number,
-        public readonly customerId: string,
-    ) { }
+        public readonly placa: string,
+        public readonly marca: string,
+        public readonly modelo: string,
+        public readonly clienteId: string,
+        public readonly ano: number | undefined,
+        public readonly cor: string | undefined,
+        public readonly kmAtual: number | undefined,
+        public readonly ativo: boolean,
+        public readonly createdAt: Date,
+        public readonly updatedAt: Date,
+    ) {}
 
     static create(props: {
-        plate: string;
-        brand: string;
-        model: string;
-        year: number;
-        customerId: string;
-    }): Vehicle {
-        if (props.year < 1886 || props.year > new Date().getFullYear() + 1) {
+        placa: string;
+        marca: string;
+        modelo: string;
+        clienteId: string;
+        ano?: number;
+        cor?: string;
+        kmAtual?: number;
+    }): Veiculo {
+        if (props.ano !== undefined && (props.ano < 1886 || props.ano > new Date().getFullYear() + 1)) {
             throw new Error('Ano do veículo inválido');
         }
-        return new Vehicle(
+        return new Veiculo(
             crypto.randomUUID(),
-            props.plate.toUpperCase(),
-            props.brand,
-            props.model,
-            props.year,
-            props.customerId,
+            props.placa.toUpperCase(),
+            props.marca,
+            props.modelo,
+            props.clienteId,
+            props.ano,
+            props.cor,
+            props.kmAtual,
+            true,
+            new Date(),
+            new Date(),
         );
     }
 
     static restore(props: {
         id: string;
-        plate: string;
-        brand: string;
-        model: string;
-        year: number;
-        customerId: string;
-    }): Vehicle {
-        return new Vehicle(props.id, props.plate, props.brand, props.model, props.year, props.customerId);
+        placa: string;
+        marca: string;
+        modelo: string;
+        clienteId: string;
+        ano?: number;
+        cor?: string;
+        kmAtual?: number;
+        ativo: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    }): Veiculo {
+        return new Veiculo(
+            props.id,
+            props.placa,
+            props.marca,
+            props.modelo,
+            props.clienteId,
+            props.ano,
+            props.cor,
+            props.kmAtual,
+            props.ativo,
+            props.createdAt,
+            props.updatedAt,
+        );
     }
 
-    update(props: Partial<{ brand: string; model: string; year: number }>): Vehicle {
-        if (props.year !== undefined && (props.year < 1886 || props.year > new Date().getFullYear() + 1)) {
+    update(props: Partial<{ marca: string; modelo: string; ano: number; cor: string; kmAtual: number }>): Veiculo {
+        if (props.ano !== undefined && (props.ano < 1886 || props.ano > new Date().getFullYear() + 1)) {
             throw new Error('Ano do veículo inválido');
         }
-        return new Vehicle(
+        return new Veiculo(
             this.id,
-            this.plate,
-            props.brand ?? this.brand,
-            props.model ?? this.model,
-            props.year ?? this.year,
-            this.customerId,
+            this.placa,
+            props.marca ?? this.marca,
+            props.modelo ?? this.modelo,
+            this.clienteId,
+            props.ano ?? this.ano,
+            props.cor ?? this.cor,
+            props.kmAtual ?? this.kmAtual,
+            this.ativo,
+            this.createdAt,
+            new Date(),
         );
+    }
+
+    deactivate(): Veiculo {
+        return new Veiculo(this.id, this.placa, this.marca, this.modelo, this.clienteId, this.ano, this.cor, this.kmAtual, false, this.createdAt, new Date());
+    }
+
+    reactivate(): Veiculo {
+        return new Veiculo(this.id, this.placa, this.marca, this.modelo, this.clienteId, this.ano, this.cor, this.kmAtual, true, this.createdAt, new Date());
     }
 }

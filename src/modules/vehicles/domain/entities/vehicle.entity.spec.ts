@@ -1,52 +1,74 @@
-import { Vehicle } from './vehicle.entity';
+import { Veiculo } from './vehicle.entity';
 
-describe('Vehicle entity', () => {
+describe('Veiculo entity', () => {
     describe('create()', () => {
-        it('creates a vehicle with plate uppercased', () => {
-            const v = Vehicle.create({ plate: 'abc1d234', brand: 'Toyota', model: 'Corolla', year: 2020, customerId: 'c1' });
-            expect(v.plate).toBe('ABC1D234');
+        it('creates a veiculo with placa uppercased', () => {
+            const v = Veiculo.create({ placa: 'abc1d234', marca: 'Toyota', modelo: 'Corolla', clienteId: 'c1' });
+            expect(v.placa).toBe('ABC1D234');
             expect(v.id).toBeDefined();
+            expect(v.ativo).toBe(true);
         });
 
-        it('throws when year < 1886', () => {
+        it('throws when ano < 1886', () => {
             expect(() =>
-                Vehicle.create({ plate: 'ABC1D234', brand: 'X', model: 'Y', year: 1885, customerId: 'c1' }),
+                Veiculo.create({ placa: 'ABC1D234', marca: 'X', modelo: 'Y', clienteId: 'c1', ano: 1885 }),
             ).toThrow('inválido');
         });
 
-        it('throws when year > current year + 1', () => {
+        it('throws when ano > current year + 1', () => {
             const futureYear = new Date().getFullYear() + 2;
             expect(() =>
-                Vehicle.create({ plate: 'ABC1D234', brand: 'X', model: 'Y', year: futureYear, customerId: 'c1' }),
+                Veiculo.create({ placa: 'ABC1D234', marca: 'X', modelo: 'Y', clienteId: 'c1', ano: futureYear }),
             ).toThrow('inválido');
         });
 
         it('accepts current year', () => {
-            const year = new Date().getFullYear();
-            const v = Vehicle.create({ plate: 'XYZ1234', brand: 'Honda', model: 'Civic', year, customerId: 'c1' });
-            expect(v.year).toBe(year);
+            const ano = new Date().getFullYear();
+            const v = Veiculo.create({ placa: 'XYZ1234', marca: 'Honda', modelo: 'Civic', clienteId: 'c1', ano });
+            expect(v.ano).toBe(ano);
+        });
+
+        it('accepts optional cor and kmAtual', () => {
+            const v = Veiculo.create({ placa: 'ABC1234', marca: 'Ford', modelo: 'Ka', clienteId: 'c1', cor: 'Branco', kmAtual: 50000 });
+            expect(v.cor).toBe('Branco');
+            expect(v.kmAtual).toBe(50000);
         });
     });
 
     describe('restore()', () => {
         it('restores with a given id', () => {
-            const v = Vehicle.restore({ id: 'v-1', plate: 'ABC1D234', brand: 'X', model: 'Y', year: 2020, customerId: 'c1' });
+            const date = new Date();
+            const v = Veiculo.restore({ id: 'v-1', placa: 'ABC1D234', marca: 'X', modelo: 'Y', clienteId: 'c1', ativo: true, createdAt: date, updatedAt: date });
             expect(v.id).toBe('v-1');
         });
     });
 
     describe('update()', () => {
-        it('updates brand and model but plate is immutable', () => {
-            const v = Vehicle.create({ plate: 'ABC1D234', brand: 'Old', model: 'OldM', year: 2020, customerId: 'c1' });
-            const updated = v.update({ brand: 'New', model: 'NewM' });
-            expect(updated.brand).toBe('New');
-            expect(updated.model).toBe('NewM');
-            expect(updated.plate).toBe('ABC1D234');
+        it('updates marca and modelo but placa is immutable', () => {
+            const v = Veiculo.create({ placa: 'ABC1D234', marca: 'Old', modelo: 'OldM', clienteId: 'c1' });
+            const updated = v.update({ marca: 'New', modelo: 'NewM' });
+            expect(updated.marca).toBe('New');
+            expect(updated.modelo).toBe('NewM');
+            expect(updated.placa).toBe('ABC1D234');
         });
 
-        it('throws on invalid year in update', () => {
-            const v = Vehicle.create({ plate: 'ABC1D234', brand: 'X', model: 'Y', year: 2020, customerId: 'c1' });
-            expect(() => v.update({ year: 1800 })).toThrow('inválido');
+        it('throws on invalid ano in update', () => {
+            const v = Veiculo.create({ placa: 'ABC1D234', marca: 'X', modelo: 'Y', clienteId: 'c1' });
+            expect(() => v.update({ ano: 1800 })).toThrow('inválido');
+        });
+    });
+
+    describe('deactivate()', () => {
+        it('sets ativo to false', () => {
+            const v = Veiculo.create({ placa: 'ABC1234', marca: 'X', modelo: 'Y', clienteId: 'c1' });
+            expect(v.deactivate().ativo).toBe(false);
+        });
+    });
+
+    describe('reactivate()', () => {
+        it('sets ativo back to true', () => {
+            const v = Veiculo.create({ placa: 'ABC1234', marca: 'X', modelo: 'Y', clienteId: 'c1' }).deactivate();
+            expect(v.reactivate().ativo).toBe(true);
         });
     });
 });

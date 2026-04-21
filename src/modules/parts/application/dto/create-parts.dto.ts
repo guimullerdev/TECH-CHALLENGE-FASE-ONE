@@ -1,16 +1,30 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsNotEmpty, IsOptional, Min } from 'class-validator';
+import { IsString, IsNumber, IsInt, IsNotEmpty, IsOptional, Min } from 'class-validator';
 
-export class CreatePartDto {
+export class CreatePecaDto {
     @ApiProperty({ example: 'Filtro de óleo' })
-    @IsNotEmpty() @IsString() name: string;
-
-    @ApiPropertyOptional({ example: 'Filtro de óleo compatível com motores 1.0 a 2.0' })
-    @IsOptional() @IsString() description?: string;
+    @IsNotEmpty()
+    @IsString()
+    nome: string;
 
     @ApiProperty({ example: 45.90, description: 'Preço unitário em reais' })
-    @IsNumber() @Min(0) price: number;
+    @IsNumber()
+    @Min(0)
+    precoUnitario: number;
 
-    @ApiProperty({ example: 20, description: 'Quantidade em estoque (não pode ser negativa)' })
-    @IsNumber() @Min(0) stockQty: number;
+    @ApiPropertyOptional({ example: 20, description: 'Quantidade em estoque inicial' })
+    @IsOptional()
+    @IsInt()
+    @Min(0)
+    qtdTotal?: number;
+
+    @ApiPropertyOptional({ example: 'FLT-001', description: 'Código da peça' })
+    @IsOptional()
+    @IsString()
+    codigo?: string;
+
+    @ApiPropertyOptional({ example: 'Filtro de óleo compatível com motores 1.0 a 2.0' })
+    @IsOptional()
+    @IsString()
+    descricao?: string;
 }

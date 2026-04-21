@@ -1,41 +1,48 @@
-import { Controller, Post, Get, Patch, Delete, Body, Param, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Post, Get, Put, Patch, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CreatePecaUseCase } from '../application/use-cases/create-parts.usecase';
+import { GetPecaUseCase } from '../application/use-cases/get-parts.usecase';
+import { UpdatePecaUseCase } from '../application/use-cases/update-parts.usecase';
+import { DeactivatePecaUseCase } from '../application/use-cases/delete-parts.usecase';
+import { ReactivatePecaUseCase } from '../application/use-cases/reactivate-parts.usecase';
+import { CreatePecaDto } from '../application/dto/create-parts.dto';
+import { UpdatePecaDto } from '../application/dto/update-parts.dto';
 
-import { CreatePartUseCase } from '../application/use-cases/create-parts.usecase';
-import { GetPartUseCase } from '../application/use-cases/get-parts.usecase';
-import { UpdatePartUseCase } from '../application/use-cases/update-parts.usecase';
-import { DeletePartUseCase } from '../application/use-cases/delete-parts.usecase';
-import { CreatePartDto } from '../application/dto/create-parts.dto';
-import { UpdatePartDto } from '../application/dto/update-parts.dto';
-
-@ApiTags('parts')
+@ApiTags('pecas')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
-@Controller('parts')
+@Controller('pecas')
 export class PartsController {
     constructor(
-        private readonly createPartUseCase: CreatePartUseCase,
-        private readonly getPartUseCase: GetPartUseCase,
-        private readonly updatePartUseCase: UpdatePartUseCase,
-        private readonly deletePartUseCase: DeletePartUseCase,
-    ) { }
+        private readonly createPecaUseCase: CreatePecaUseCase,
+        private readonly getPecaUseCase: GetPecaUseCase,
+        private readonly updatePecaUseCase: UpdatePecaUseCase,
+        private readonly deactivatePecaUseCase: DeactivatePecaUseCase,
+        private readonly reactivatePecaUseCase: ReactivatePecaUseCase,
+    ) {}
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({ summary: 'Cadastrar peça' })
     @ApiResponse({ status: 201, description: 'Peça cadastrada' })
-    @ApiResponse({ status: 400, description: 'Dados inválidos (preço ou estoque negativos)' })
-    create(@Body() dto: CreatePartDto) {
-        return this.createPartUseCase.execute(dto);
+    @ApiResponse({ status: 400, description: 'Dados inválidos' })
+    @ApiResponse({ status: 409, description: 'Código já cadastrado' })
+    create(@Body() dto: CreatePecaDto) {
+        return this.createPecaUseCase.execute(dto);
     }
 
     @Get()
-    @ApiOperation({ summary: 'Listar todas as peças em estoque' })
+    @ApiOperation({ summary: 'Listar peças com filtros opcionais' })
+    @ApiQuery({ name: 'ativo', required: false, type: Boolean })
+    @ApiQuery({ name: 'disponivel', required: false, type: Boolean })
     @ApiResponse({ status: 200, description: 'Lista de peças' })
-    findAll() {
-        return this.getPartUseCase.executeAll();
+    findAll(
+        @Query('ativo') ativo?: string,
+        @Query('disponivel') disponivel?: string,
+    ) {
+        const ativoFilter = ativo !== undefined ? ativo === 'true' : undefined;
+        const disponivelFilter = disponivel !== undefined ? disponivel === 'true' : undefined;
+        return this.getPecaUseCase.executeAll({ ativo: ativoFilter, disponivel: disponivelFilter });
     }
 
     @Get(':id')
@@ -44,26 +51,33 @@ export class PartsController {
     @ApiResponse({ status: 200, description: 'Peça encontrada' })
     @ApiResponse({ status: 404, description: 'Peça não encontrada' })
     findOne(@Param('id') id: string) {
-        return this.getPartUseCase.execute(id);
+        return this.getPecaUseCase.execute(id);
     }
 
-    @Patch(':id')
+    @Put(':id')
     @ApiOperation({ summary: 'Atualizar peça' })
     @ApiParam({ name: 'id', description: 'UUID da peça' })
     @ApiResponse({ status: 200, description: 'Peça atualizada' })
-    @ApiResponse({ status: 400, description: 'Estoque ou preço negativo' })
     @ApiResponse({ status: 404, description: 'Peça não encontrada' })
-    update(@Param('id') id: string, @Body() dto: UpdatePartDto) {
-        return this.updatePartUseCase.execute(id, dto);
+    update(@Param('id') id: string, @Body() dto: UpdatePecaDto) {
+        return this.updatePecaUseCase.execute(id, dto);
     }
 
-    @Delete(':id')
-    @HttpCode(HttpStatus.NO_CONTENT)
-    @ApiOperation({ summary: 'Remover peça' })
+    @Patch(':id/desativar')
+    @ApiOperation({ summary: 'Desativar peça' })
     @ApiParam({ name: 'id', description: 'UUID da peça' })
-    @ApiResponse({ status: 204, description: 'Peça removida' })
+    @ApiResponse({ status: 200, description: 'Peça desativada' })
     @ApiResponse({ status: 404, description: 'Peça não encontrada' })
-    remove(@Param('id') id: string) {
-        return this.deletePartUseCase.execute(id);
+    deactivate(@Param('id') id: string) {
+        return this.deactivatePecaUseCase.execute(id);
+    }
+
+    @Patch(':id/reativar')
+    @ApiOperation({ summary: 'Reativar peça' })
+    @ApiParam({ name: 'id', description: 'UUID da peça' })
+    @ApiResponse({ status: 200, description: 'Peça reativada' })
+    @ApiResponse({ status: 404, description: 'Peça não encontrada' })
+    reactivate(@Param('id') id: string) {
+        return this.reactivatePecaUseCase.execute(id);
     }
 }

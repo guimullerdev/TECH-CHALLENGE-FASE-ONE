@@ -1,21 +1,26 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 
-import type { PartRepository } from "../../domain/repositories/parts.repository.interface";
+import { PECA_REPOSITORY, IPecaRepository } from '../../domain/repositories/parts.repository.interface';
+import { Peca } from '../../domain/entities/parts.entity';
 
 @Injectable()
-export class GetPartUseCase {
+export class GetPecaUseCase {
     constructor(
-        @Inject('PartRepository')
-        private readonly repo: PartRepository
-    ) { }
+        @Inject(PECA_REPOSITORY)
+        private readonly repo: IPecaRepository,
+    ) {}
 
-    async execute(id: string) {
-        const part = await this.repo.findById(id);
-        if (!part) throw new NotFoundException(`Peça ${id} não encontrada`);
-        return part;
+    async execute(id: string): Promise<Peca> {
+        const peca = await this.repo.findById(id);
+        if (!peca) throw new NotFoundException(`Peça ${id} não encontrada`);
+        return peca;
     }
 
-    async executeAll() {
-        return this.repo.findAll();
+    async executeAll(filters?: { id?: string; ativo?: boolean; disponivel?: boolean }): Promise<Peca[]> {
+        if (filters?.id) {
+            const p = await this.repo.findById(filters.id);
+            return p ? [p] : [];
+        }
+        return this.repo.findAll({ ativo: filters?.ativo, disponivel: filters?.disponivel });
     }
 }

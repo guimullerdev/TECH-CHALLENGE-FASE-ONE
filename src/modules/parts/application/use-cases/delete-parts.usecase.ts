@@ -1,17 +1,19 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 
-import type { PartRepository } from "../../domain/repositories/parts.repository.interface";
+import { PECA_REPOSITORY, IPecaRepository } from '../../domain/repositories/parts.repository.interface';
+import { Peca } from '../../domain/entities/parts.entity';
 
 @Injectable()
-export class DeletePartUseCase {
+export class DeactivatePecaUseCase {
     constructor(
-        @Inject('PartRepository')
-        private readonly repo: PartRepository
-    ) { }
+        @Inject(PECA_REPOSITORY)
+        private readonly repo: IPecaRepository,
+    ) {}
 
-    async execute(id: string): Promise<void> {
+    async execute(id: string): Promise<Peca> {
         const existing = await this.repo.findById(id);
         if (!existing) throw new NotFoundException(`Peça ${id} não encontrada`);
-        await this.repo.delete(id);
+        const deactivated = existing.deactivate();
+        return this.repo.update(deactivated);
     }
 }

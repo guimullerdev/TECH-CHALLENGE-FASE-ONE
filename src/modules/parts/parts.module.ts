@@ -1,26 +1,29 @@
 import { Module } from '@nestjs/common';
 
 import { PrismaModule } from '../../prisma/prisma.module';
+import { PECA_REPOSITORY } from './domain/repositories/parts.repository.interface';
+import { PecaPrismaRepository } from './infrastructure/repositories/parts-prisma.repository';
 import { PartsController } from './presentation/parts.controller';
-import { CreatePartUseCase } from './application/use-cases/create-parts.usecase';
-import { GetPartUseCase } from './application/use-cases/get-parts.usecase';
-import { UpdatePartUseCase } from './application/use-cases/update-parts.usecase';
-import { DeletePartUseCase } from './application/use-cases/delete-parts.usecase';
-import { PartPrismaRepository } from './infrastructure/repositories/parts-prisma.repository';
+import { CreatePecaUseCase } from './application/use-cases/create-parts.usecase';
+import { GetPecaUseCase } from './application/use-cases/get-parts.usecase';
+import { UpdatePecaUseCase } from './application/use-cases/update-parts.usecase';
+import { DeactivatePecaUseCase } from './application/use-cases/delete-parts.usecase';
+import { ReactivatePecaUseCase } from './application/use-cases/reactivate-parts.usecase';
 
 @Module({
     imports: [PrismaModule],
     controllers: [PartsController],
     providers: [
-        CreatePartUseCase,
-        GetPartUseCase,
-        UpdatePartUseCase,
-        DeletePartUseCase,
+        CreatePecaUseCase,
+        GetPecaUseCase,
+        UpdatePecaUseCase,
+        DeactivatePecaUseCase,
+        ReactivatePecaUseCase,
         {
-            provide: 'PartRepository',
-            useClass: PartPrismaRepository,
+            provide: PECA_REPOSITORY,
+            useClass: PecaPrismaRepository,
         },
     ],
-    exports: ['PartRepository'],
+    exports: [PECA_REPOSITORY],
 })
-export class PartsModule { }
+export class PartsModule {}

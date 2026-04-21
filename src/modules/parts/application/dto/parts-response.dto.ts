@@ -1,18 +1,36 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class PartResponseDto {
+export class PecaResponseDto {
     @ApiProperty({ example: 'c5d6e7f8-3456-7890-bcde-f01234567890' })
     id: string;
 
     @ApiProperty({ example: 'Filtro de óleo' })
-    name: string;
-
-    @ApiPropertyOptional({ example: 'Filtro de óleo compatível com motores 1.0 a 2.0' })
-    description: string | null;
+    nome: string;
 
     @ApiProperty({ example: 45.90, description: 'Preço unitário em reais' })
-    price: number;
+    precoUnitario: number;
 
-    @ApiProperty({ example: 20, description: 'Quantidade em estoque' })
-    stockQty: number;
+    @ApiProperty({ example: 20 })
+    qtdTotal: number;
+
+    @ApiProperty({ example: 15 })
+    qtdDisponivel: number;
+
+    @ApiProperty({ example: 5 })
+    qtdReservada: number;
+
+    @ApiPropertyOptional({ example: 'FLT-001' })
+    codigo?: string;
+
+    @ApiPropertyOptional({ example: 'Filtro de óleo compatível com motores 1.0 a 2.0' })
+    descricao?: string;
+
+    @ApiProperty({ example: true })
+    ativo: boolean;
+
+    @ApiProperty({ example: '2026-04-16T10:00:00.000Z' })
+    createdAt: Date;
+
+    @ApiProperty({ example: '2026-04-16T10:00:00.000Z' })
+    updatedAt: Date;
 }

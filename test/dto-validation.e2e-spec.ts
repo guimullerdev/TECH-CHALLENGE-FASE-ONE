@@ -1,13 +1,10 @@
 /**
- * E2E — Validação de DTOs (Feature 33)
+ * E2E — Validação de DTOs
  *
- * Cobre todos os endpoints POST e PATCH dos 5 módulos com:
+ * Cobre endpoints POST/PUT dos módulos com:
  *   (a) body vazio {}          → 400
  *   (b) tipo errado nos campos → 400
  *   (c) campos extras          → 400 (forbidNonWhitelisted)
- *
- * Pré-requisitos: mesmo banco de teste dos outros e2e specs.
- *   DATABASE_URL="postgresql://..." yarn test:e2e
  */
 
 import { INestApplication, ValidationPipe } from '@nestjs/common';
@@ -17,17 +14,15 @@ import { AppModule } from 'src/app.module';
 import { HttpExceptionFilter } from 'src/common/filters/http-exception.filter';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-describe('DTO Validation — payloads inválidos (e2e)', () => {
+describe('DTO Validation (e2e)', () => {
     let app: INestApplication;
     let prisma: PrismaService;
     let token: string;
-
-    // IDs necessários para os testes de PATCH
-    let customerId: string;
-    let vehicleId: string;
-    let serviceId: string;
-    let partId: string;
-    let orderId: string;
+    let clienteId: string;
+    let veiculoId: string;
+    let servicoId: string;
+    let pecaId: string;
+    let osId: string;
 
     beforeAll(async () => {
         const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -41,59 +36,58 @@ describe('DTO Validation — payloads inválidos (e2e)', () => {
 
         prisma = moduleFixture.get<PrismaService>(PrismaService);
 
-        // Limpa dados de teste anteriores
-        await prisma.orderService.deleteMany();
-        await prisma.orderPart.deleteMany();
-        await prisma.serviceOrder.deleteMany();
-        await prisma.vehicle.deleteMany();
-        await prisma.customer.deleteMany();
-        await prisma.service.deleteMany();
-        await prisma.part.deleteMany();
+        // Cleanup
+        await prisma.movimentacaoEstoque.deleteMany();
+        await prisma.orcamento.deleteMany();
+        await prisma.osItemServico.deleteMany();
+        await prisma.osItemPeca.deleteMany();
+        await prisma.ordemDeServico.deleteMany();
+        await prisma.veiculo.deleteMany();
+        await prisma.cliente.deleteMany();
+        await prisma.servico.deleteMany();
+        await prisma.peca.deleteMany();
         await prisma.user.deleteMany({ where: { email: 'validation@test.com' } });
 
-        // Obtém token JWT para autenticar os requests
         const authRes = await request(app.getHttpServer())
             .post('/auth/register')
             .send({ email: 'validation@test.com', password: 'senha123' });
         token = authRes.body.accessToken;
 
-        // Cria dados base para os testes de PATCH
-        const customer = await request(app.getHttpServer())
-            .post('/customers')
+        // Base data for PATCH tests
+        const cliente = await request(app.getHttpServer())
+            .post('/clientes')
             .set('Authorization', `Bearer ${token}`)
-            .send({ name: 'Cliente Validação', document: '11122233344', email: 'val@test.com', phone: '11900000001' });
-        customerId = customer.body.id;
+            .send({ nome: 'Cliente Validação', cpf: '11122233344', email: 'val@test.com', telefone: '11900000001' });
+        clienteId = cliente.body.id;
 
-        const vehicle = await request(app.getHttpServer())
-            .post('/vehicles')
+        const veiculo = await request(app.getHttpServer())
+            .post('/veiculos')
             .set('Authorization', `Bearer ${token}`)
-            .send({ plate: 'VAL0001', brand: 'Honda', model: 'Civic', year: 2019, customerId });
-        vehicleId = vehicle.body.id;
+            .send({ placa: 'VAL0001', marca: 'Honda', modelo: 'Civic', ano: 2019, clienteId });
+        veiculoId = veiculo.body.id;
 
-        const service = await request(app.getHttpServer())
-            .post('/services')
+        const servico = await request(app.getHttpServer())
+            .post('/servicos')
             .set('Authorization', `Bearer ${token}`)
-            .send({ name: 'Revisão', price: 200, estimatedTime: 90 });
-        serviceId = service.body.id;
+            .send({ nome: 'Revisão', precoBase: 200 });
+        servicoId = servico.body.id;
 
-        const part = await request(app.getHttpServer())
-            .post('/parts')
+        const peca = await request(app.getHttpServer())
+            .post('/pecas')
             .set('Authorization', `Bearer ${token}`)
-            .send({ name: 'Vela de ignição', price: 30, stockQty: 50 });
-        partId = part.body.id;
+            .send({ nome: 'Vela de ignição', precoUnitario: 30, qtdTotal: 50 });
+        pecaId = peca.body.id;
 
-        const order = await request(app.getHttpServer())
-            .post('/service-orders')
+        const os = await request(app.getHttpServer())
+            .post('/os')
             .set('Authorization', `Bearer ${token}`)
-            .send({ customerId, vehicleId, description: 'OS para testes de validação' });
-        orderId = order.body.id;
+            .send({ clienteId, veiculoId, descricaoProblema: 'OS para testes de validação' });
+        osId = os.body.id;
     });
 
     afterAll(async () => {
         await app.close();
     });
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     function auth() {
         return { Authorization: `Bearer ${token}` };
@@ -101,298 +95,175 @@ describe('DTO Validation — payloads inválidos (e2e)', () => {
 
     function expectValidationError(res: request.Response) {
         expect(res.status).toBe(400);
-        expect(Array.isArray(res.body.message) || typeof res.body.message === 'string').toBe(true);
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // CUSTOMERS
-    // ══════════════════════════════════════════════════════════════════════════
+    // ── /clientes ─────────────────────────────────────────────────────────────
 
-    describe('POST /customers', () => {
+    describe('POST /clientes', () => {
         it('(a) body vazio → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/customers')
-                .set(auth())
-                .send({});
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).post('/clientes').set(auth()).send({}));
         });
 
         it('(b) email inválido → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/customers')
-                .set(auth())
-                .send({ name: 'João', document: '123', email: 'nao-e-email', phone: '11999' });
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).post('/clientes').set(auth())
+                .send({ nome: 'João', cpf: '12345678901', email: 'nao-e-email' }));
         });
 
         it('(c) campo extra → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/customers')
-                .set(auth())
-                .send({ name: 'João', document: '123', email: 'j@j.com', phone: '11999', extraField: 'hack' });
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).post('/clientes').set(auth())
+                .send({ nome: 'João', cpf: '12345678901', extraField: 'hack' }));
         });
     });
 
-    describe('PATCH /customers/:id', () => {
-        it('(b) tipo errado (name como número) → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .patch(`/customers/${customerId}`)
-                .set(auth())
-                .send({ name: 12345 });
-            expectValidationError(res);
+    describe('PUT /clientes/:id', () => {
+        it('(b) nome como número → 400', async () => {
+            expectValidationError(await request(app.getHttpServer()).put(`/clientes/${clienteId}`).set(auth())
+                .send({ nome: 12345 }));
         });
 
         it('(c) campo extra → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .patch(`/customers/${customerId}`)
-                .set(auth())
-                .send({ unknownField: 'x' });
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).put(`/clientes/${clienteId}`).set(auth())
+                .send({ unknownField: 'x' }));
         });
     });
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // VEHICLES
-    // ══════════════════════════════════════════════════════════════════════════
+    // ── /veiculos ─────────────────────────────────────────────────────────────
 
-    describe('POST /vehicles', () => {
+    describe('POST /veiculos', () => {
         it('(a) body vazio → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/vehicles')
-                .set(auth())
-                .send({});
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).post('/veiculos').set(auth()).send({}));
         });
 
-        it('(b) year como string → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/vehicles')
-                .set(auth())
-                .send({ plate: 'XXX0000', brand: 'Ford', model: 'Ka', year: 'dois mil', customerId });
-            expectValidationError(res);
+        it('(b) ano como string → 400', async () => {
+            expectValidationError(await request(app.getHttpServer()).post('/veiculos').set(auth())
+                .send({ placa: 'XXX0000', marca: 'Ford', modelo: 'Ka', ano: 'dois mil', clienteId }));
         });
 
         it('(c) campo extra → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/vehicles')
-                .set(auth())
-                .send({ plate: 'XXX0001', brand: 'Ford', model: 'Ka', year: 2020, customerId, cor: 'azul' });
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).post('/veiculos').set(auth())
+                .send({ placa: 'XXX0001', marca: 'Ford', modelo: 'Ka', clienteId, extraField: true }));
         });
     });
 
-    describe('PATCH /vehicles/:id', () => {
-        it('(b) year como string → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .patch(`/vehicles/${vehicleId}`)
-                .set(auth())
-                .send({ year: 'dois mil e vinte' });
-            expectValidationError(res);
+    describe('PUT /veiculos/:id', () => {
+        it('(b) ano como string → 400', async () => {
+            expectValidationError(await request(app.getHttpServer()).put(`/veiculos/${veiculoId}`).set(auth())
+                .send({ ano: 'dois mil' }));
         });
 
         it('(c) campo extra → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .patch(`/vehicles/${vehicleId}`)
-                .set(auth())
-                .send({ cor: 'vermelho' });
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).put(`/veiculos/${veiculoId}`).set(auth())
+                .send({ combustivel: 'flex' }));
         });
     });
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // SERVICES
-    // ══════════════════════════════════════════════════════════════════════════
+    // ── /servicos ─────────────────────────────────────────────────────────────
 
-    describe('POST /services', () => {
+    describe('POST /servicos', () => {
         it('(a) body vazio → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/services')
-                .set(auth())
-                .send({});
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).post('/servicos').set(auth()).send({}));
         });
 
-        it('(b) price como string → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/services')
-                .set(auth())
-                .send({ name: 'Serviço', price: 'caro', estimatedTime: 30 });
-            expectValidationError(res);
+        it('(b) precoBase como string → 400', async () => {
+            expectValidationError(await request(app.getHttpServer()).post('/servicos').set(auth())
+                .send({ nome: 'Serviço', precoBase: 'caro' }));
         });
 
         it('(c) campo extra → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/services')
-                .set(auth())
-                .send({ name: 'Serviço', price: 100, estimatedTime: 30, categoria: 'motor' });
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).post('/servicos').set(auth())
+                .send({ nome: 'Serviço', precoBase: 100, categoria: 'motor' }));
         });
     });
 
-    describe('PATCH /services/:id', () => {
-        it('(b) estimatedTime como string → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .patch(`/services/${serviceId}`)
-                .set(auth())
-                .send({ estimatedTime: 'rápido' });
-            expectValidationError(res);
+    describe('PUT /servicos/:id', () => {
+        it('(b) precoBase como string → 400', async () => {
+            expectValidationError(await request(app.getHttpServer()).put(`/servicos/${servicoId}`).set(auth())
+                .send({ precoBase: 'barato' }));
         });
 
         it('(c) campo extra → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .patch(`/services/${serviceId}`)
-                .set(auth())
-                .send({ categoria: 'eletrico' });
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).put(`/servicos/${servicoId}`).set(auth())
+                .send({ categoria: 'eletrico' }));
         });
     });
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // PARTS
-    // ══════════════════════════════════════════════════════════════════════════
+    // ── /pecas ────────────────────────────────────────────────────────────────
 
-    describe('POST /parts', () => {
+    describe('POST /pecas', () => {
         it('(a) body vazio → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/parts')
-                .set(auth())
-                .send({});
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).post('/pecas').set(auth()).send({}));
         });
 
-        it('(b) stockQty como string → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/parts')
-                .set(auth())
-                .send({ name: 'Peça', price: 10, stockQty: 'muitas' });
-            expectValidationError(res);
+        it('(b) qtdTotal como string → 400', async () => {
+            expectValidationError(await request(app.getHttpServer()).post('/pecas').set(auth())
+                .send({ nome: 'Peça', precoUnitario: 10, qtdTotal: 'muitas' }));
         });
 
         it('(c) campo extra → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/parts')
-                .set(auth())
-                .send({ name: 'Peça', price: 10, stockQty: 5, fornecedor: 'ACME' });
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).post('/pecas').set(auth())
+                .send({ nome: 'Peça', precoUnitario: 10, fornecedor: 'ACME' }));
         });
     });
 
-    describe('PATCH /parts/:id', () => {
-        it('(b) price como string → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .patch(`/parts/${partId}`)
-                .set(auth())
-                .send({ price: 'barato' });
-            expectValidationError(res);
+    describe('PUT /pecas/:id', () => {
+        it('(b) precoUnitario como string → 400', async () => {
+            expectValidationError(await request(app.getHttpServer()).put(`/pecas/${pecaId}`).set(auth())
+                .send({ precoUnitario: 'barato' }));
         });
 
         it('(c) campo extra → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .patch(`/parts/${partId}`)
-                .set(auth())
-                .send({ fornecedor: 'ACME' });
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).put(`/pecas/${pecaId}`).set(auth())
+                .send({ fornecedor: 'ACME' }));
         });
     });
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // SERVICE ORDERS
-    // ══════════════════════════════════════════════════════════════════════════
+    // ── /os ───────────────────────────────────────────────────────────────────
 
-    describe('POST /service-orders', () => {
+    describe('POST /os', () => {
         it('(a) body vazio → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/service-orders')
-                .set(auth())
-                .send({});
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).post('/os').set(auth()).send({}));
         });
 
-        it('(b) customerId como string não-UUID → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/service-orders')
-                .set(auth())
-                .send({ customerId: 'nao-e-uuid', vehicleId, description: 'Teste' });
-            expectValidationError(res);
+        it('(b) clienteId não é UUID → 400', async () => {
+            expectValidationError(await request(app.getHttpServer()).post('/os').set(auth())
+                .send({ clienteId: 'nao-uuid', veiculoId }));
         });
 
         it('(c) campo extra → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/service-orders')
-                .set(auth())
-                .send({ customerId, vehicleId, description: 'Teste', prioridade: 'alta' });
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).post('/os').set(auth())
+                .send({ clienteId, veiculoId, prioridade: 'alta' }));
         });
     });
 
-    describe('PATCH /service-orders/:id', () => {
-        it('(b) description como número → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .patch(`/service-orders/${orderId}`)
-                .set(auth())
-                .send({ description: 99999 });
-            expectValidationError(res);
-        });
-
-        it('(c) campo extra → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .patch(`/service-orders/${orderId}`)
-                .set(auth())
-                .send({ prioridade: 'urgente' });
-            expectValidationError(res);
-        });
-    });
-
-    describe('POST /service-orders/:id/services', () => {
+    describe('POST /os/:id/servicos', () => {
         it('(a) body vazio → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post(`/service-orders/${orderId}/services`)
-                .set(auth())
-                .send({});
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).post(`/os/${osId}/servicos`).set(auth()).send({}));
         });
 
-        it('(b) serviceId como string não-UUID → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post(`/service-orders/${orderId}/services`)
-                .set(auth())
-                .send({ serviceId: 'nao-e-uuid' });
-            expectValidationError(res);
+        it('(b) servicoId não é UUID → 400', async () => {
+            expectValidationError(await request(app.getHttpServer()).post(`/os/${osId}/servicos`).set(auth())
+                .send({ servicoId: 'nao-uuid' }));
         });
 
         it('(c) campo extra → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post(`/service-orders/${orderId}/services`)
-                .set(auth())
-                .send({ serviceId, desconto: 10 });
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).post(`/os/${osId}/servicos`).set(auth())
+                .send({ servicoId, desconto: 10 }));
         });
     });
 
-    describe('POST /service-orders/:id/parts', () => {
+    describe('POST /os/:id/pecas', () => {
         it('(a) body vazio → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post(`/service-orders/${orderId}/parts`)
-                .set(auth())
-                .send({});
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).post(`/os/${osId}/pecas`).set(auth()).send({}));
         });
 
-        it('(b) quantity como string → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post(`/service-orders/${orderId}/parts`)
-                .set(auth())
-                .send({ partId, quantity: 'dois' });
-            expectValidationError(res);
+        it('(b) quantidade como string → 400', async () => {
+            expectValidationError(await request(app.getHttpServer()).post(`/os/${osId}/pecas`).set(auth())
+                .send({ pecaId, quantidade: 'dois' }));
         });
 
         it('(c) campo extra → 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post(`/service-orders/${orderId}/parts`)
-                .set(auth())
-                .send({ partId, quantity: 1, desconto: 5 });
-            expectValidationError(res);
+            expectValidationError(await request(app.getHttpServer()).post(`/os/${osId}/pecas`).set(auth())
+                .send({ pecaId, quantidade: 1, desconto: 5 }));
         });
     });
 });

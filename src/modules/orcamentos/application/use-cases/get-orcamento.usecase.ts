@@ -15,4 +15,10 @@ export class GetOrcamentoUseCase {
         if (!orcamento) throw new NotFoundException(`Orçamento ${id} não encontrado`);
         return orcamento;
     }
+
+    async executeByOsId(osId: string): Promise<Orcamento> {
+        const orcamento = await this.repo.findByOsId(osId);
+        if (!orcamento) throw new NotFoundException(`Orçamento para OS ${osId} não encontrado`);
+        return orcamento;
+    }
 }

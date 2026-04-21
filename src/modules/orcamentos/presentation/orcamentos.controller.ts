@@ -18,6 +18,15 @@ export class OrcamentosController {
         private readonly reprovarOrcamentoUseCase: ReprovarOrcamentoUseCase,
     ) {}
 
+    @Get('by-os/:osId')
+    @ApiOperation({ summary: 'Buscar orçamento pelo ID da OS' })
+    @ApiParam({ name: 'osId', description: 'UUID da OS' })
+    @ApiResponse({ status: 200, description: 'Orçamento encontrado' })
+    @ApiResponse({ status: 404, description: 'Orçamento não encontrado para esta OS' })
+    findByOsId(@Param('osId') osId: string) {
+        return this.getOrcamentoUseCase.executeByOsId(osId);
+    }
+
     @Get(':id')
     @ApiOperation({ summary: 'Buscar orçamento por ID' })
     @ApiParam({ name: 'id', description: 'UUID do orçamento' })

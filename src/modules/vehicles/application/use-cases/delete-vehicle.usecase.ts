@@ -1,17 +1,19 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 
-import type { VehicleRepository } from "../../domain/repositories/vehicle.repository.interface";
+import { VEICULO_REPOSITORY, IVeiculoRepository } from '../../domain/repositories/vehicle.repository.interface';
+import { Veiculo } from '../../domain/entities/vehicle.entity';
 
 @Injectable()
-export class DeleteVehicleUseCase {
+export class DeactivateVeiculoUseCase {
     constructor(
-        @Inject('VehicleRepository')
-        private readonly repo: VehicleRepository
-    ) { }
+        @Inject(VEICULO_REPOSITORY)
+        private readonly repo: IVeiculoRepository,
+    ) {}
 
-    async execute(id: string): Promise<void> {
+    async execute(id: string): Promise<Veiculo> {
         const existing = await this.repo.findById(id);
         if (!existing) throw new NotFoundException(`Veículo ${id} não encontrado`);
-        await this.repo.delete(id);
+        const deactivated = existing.deactivate();
+        return this.repo.update(deactivated);
     }
 }

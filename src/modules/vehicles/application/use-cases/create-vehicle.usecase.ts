@@ -1,20 +1,35 @@
-import { ConflictException, Inject, Injectable } from "@nestjs/common";
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 
-import { CreateVehicleDto } from "../dto/create-vehicle.dto";
-import { Vehicle } from "../../domain/entities/vehicle.entity";
-import type { VehicleRepository } from "../../domain/repositories/vehicle.repository.interface";
+import { VEICULO_REPOSITORY, IVeiculoRepository } from '../../domain/repositories/vehicle.repository.interface';
+import { CLIENTE_REPOSITORY, IClienteRepository } from '../../../customers/domain/repositories/customers.repository.interface';
+import { Veiculo } from '../../domain/entities/vehicle.entity';
+import { CreateVeiculoDto } from '../dto/create-vehicle.dto';
 
 @Injectable()
-export class CreateVehicleUseCase {
+export class CreateVeiculoUseCase {
     constructor(
-        @Inject('VehicleRepository')
-        private readonly repo: VehicleRepository
-    ) { }
+        @Inject(VEICULO_REPOSITORY)
+        private readonly veiculoRepo: IVeiculoRepository,
+        @Inject(CLIENTE_REPOSITORY)
+        private readonly clienteRepo: IClienteRepository,
+    ) {}
 
-    async execute(dto: CreateVehicleDto): Promise<Vehicle> {
-        const existing = await this.repo.findByPlate(dto.plate.toUpperCase());
-        if (existing) throw new ConflictException(`Veículo com placa ${dto.plate} já cadastrado`);
-        const vehicle = Vehicle.create(dto);
-        return this.repo.create(vehicle);
+    async execute(dto: CreateVeiculoDto): Promise<Veiculo> {
+        const cliente = await this.clienteRepo.findById(dto.clienteId);
+        if (!cliente) throw new NotFoundException(`Cliente ${dto.clienteId} não encontrado`);
+
+        const existing = await this.veiculoRepo.findByPlaca(dto.placa.toUpperCase());
+        if (existing) throw new ConflictException(`Veículo com placa ${dto.placa} já cadastrado`);
+
+        const veiculo = Veiculo.create({
+            placa: dto.placa,
+            marca: dto.marca,
+            modelo: dto.modelo,
+            clienteId: dto.clienteId,
+            ano: dto.ano,
+            cor: dto.cor,
+            kmAtual: dto.kmAtual,
+        });
+        return this.veiculoRepo.create(veiculo);
     }
 }

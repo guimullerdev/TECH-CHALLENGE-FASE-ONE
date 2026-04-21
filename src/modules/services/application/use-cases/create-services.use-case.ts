@@ -1,16 +1,22 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
-import { ServicesRepository } from '../../domain/repositories/services.repository';
-import { CreateServicesDto } from '../dto/create-services.dto';
-import { Services } from '../../domain/entities/services.entity';
+import { SERVICO_REPOSITORY, IServicoRepository } from '../../domain/repositories/services.repository';
+import { Servico } from '../../domain/entities/services.entity';
+import { CreateServicoDto } from '../dto/create-services.dto';
 
 @Injectable()
-export class CreateServicesUseCase {
-    constructor(private readonly repository: ServicesRepository) { }
+export class CreateServicoUseCase {
+    constructor(
+        @Inject(SERVICO_REPOSITORY)
+        private readonly repo: IServicoRepository,
+    ) {}
 
-    async execute(dto: CreateServicesDto): Promise<Services> {
-        const entity = Services.create(dto);
-        await this.repository.save(entity);
-        return entity;
+    async execute(dto: CreateServicoDto): Promise<Servico> {
+        const servico = Servico.create({
+            nome: dto.nome,
+            precoBase: dto.precoBase,
+            descricao: dto.descricao,
+        });
+        return this.repo.create(servico);
     }
 }

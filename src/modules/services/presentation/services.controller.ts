@@ -1,41 +1,42 @@
-import { Controller, Post, Get, Patch, Delete, Body, Param, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Post, Get, Put, Patch, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CreateServicoUseCase } from '../application/use-cases/create-services.use-case';
+import { GetServicoUseCase } from '../application/use-cases/get-services.use-case';
+import { UpdateServicoUseCase } from '../application/use-cases/update-services.use-case';
+import { DeactivateServicoUseCase } from '../application/use-cases/delete-services.use-case';
+import { ReactivateServicoUseCase } from '../application/use-cases/reactivate-services.use-case';
+import { CreateServicoDto } from '../application/dto/create-services.dto';
+import { UpdateServicoDto } from '../application/dto/update-services.dto';
 
-import { CreateServicesUseCase } from '../application/use-cases/create-services.use-case';
-import { GetServicesUseCase } from '../application/use-cases/get-services.use-case';
-import { UpdateServicesUseCase } from '../application/use-cases/update-services.use-case';
-import { DeleteServicesUseCase } from '../application/use-cases/delete-services.use-case';
-import { CreateServicesDto } from '../application/dto/create-services.dto';
-import { UpdateServicesDto } from '../application/dto/update-services.dto';
-
-@ApiTags('services')
+@ApiTags('servicos')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
-@Controller('services')
+@Controller('servicos')
 export class ServicesController {
     constructor(
-        private readonly createServicesUseCase: CreateServicesUseCase,
-        private readonly getServicesUseCase: GetServicesUseCase,
-        private readonly updateServicesUseCase: UpdateServicesUseCase,
-        private readonly deleteServicesUseCase: DeleteServicesUseCase,
-    ) { }
+        private readonly createServicoUseCase: CreateServicoUseCase,
+        private readonly getServicoUseCase: GetServicoUseCase,
+        private readonly updateServicoUseCase: UpdateServicoUseCase,
+        private readonly deactivateServicoUseCase: DeactivateServicoUseCase,
+        private readonly reactivateServicoUseCase: ReactivateServicoUseCase,
+    ) {}
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({ summary: 'Cadastrar serviço' })
     @ApiResponse({ status: 201, description: 'Serviço cadastrado' })
     @ApiResponse({ status: 400, description: 'Dados inválidos' })
-    create(@Body() dto: CreateServicesDto) {
-        return this.createServicesUseCase.execute(dto);
+    create(@Body() dto: CreateServicoDto) {
+        return this.createServicoUseCase.execute(dto);
     }
 
     @Get()
-    @ApiOperation({ summary: 'Listar todos os serviços' })
+    @ApiOperation({ summary: 'Listar serviços com filtros opcionais' })
+    @ApiQuery({ name: 'ativo', required: false, type: Boolean })
     @ApiResponse({ status: 200, description: 'Catálogo de serviços' })
-    findAll() {
-        return this.getServicesUseCase.executeAll();
+    findAll(@Query('ativo') ativo?: string) {
+        const ativoFilter = ativo !== undefined ? ativo === 'true' : undefined;
+        return this.getServicoUseCase.executeAll({ ativo: ativoFilter });
     }
 
     @Get(':id')
@@ -44,25 +45,33 @@ export class ServicesController {
     @ApiResponse({ status: 200, description: 'Serviço encontrado' })
     @ApiResponse({ status: 404, description: 'Serviço não encontrado' })
     findOne(@Param('id') id: string) {
-        return this.getServicesUseCase.execute(id);
+        return this.getServicoUseCase.execute(id);
     }
 
-    @Patch(':id')
+    @Put(':id')
     @ApiOperation({ summary: 'Atualizar serviço' })
     @ApiParam({ name: 'id', description: 'UUID do serviço' })
     @ApiResponse({ status: 200, description: 'Serviço atualizado' })
     @ApiResponse({ status: 404, description: 'Serviço não encontrado' })
-    update(@Param('id') id: string, @Body() dto: UpdateServicesDto) {
-        return this.updateServicesUseCase.execute(id, dto);
+    update(@Param('id') id: string, @Body() dto: UpdateServicoDto) {
+        return this.updateServicoUseCase.execute(id, dto);
     }
 
-    @Delete(':id')
-    @HttpCode(HttpStatus.NO_CONTENT)
-    @ApiOperation({ summary: 'Remover serviço' })
+    @Patch(':id/desativar')
+    @ApiOperation({ summary: 'Desativar serviço' })
     @ApiParam({ name: 'id', description: 'UUID do serviço' })
-    @ApiResponse({ status: 204, description: 'Serviço removido' })
+    @ApiResponse({ status: 200, description: 'Serviço desativado' })
     @ApiResponse({ status: 404, description: 'Serviço não encontrado' })
-    remove(@Param('id') id: string) {
-        return this.deleteServicesUseCase.execute(id);
+    deactivate(@Param('id') id: string) {
+        return this.deactivateServicoUseCase.execute(id);
+    }
+
+    @Patch(':id/reativar')
+    @ApiOperation({ summary: 'Reativar serviço' })
+    @ApiParam({ name: 'id', description: 'UUID do serviço' })
+    @ApiResponse({ status: 200, description: 'Serviço reativado' })
+    @ApiResponse({ status: 404, description: 'Serviço não encontrado' })
+    reactivate(@Param('id') id: string) {
+        return this.reactivateServicoUseCase.execute(id);
     }
 }

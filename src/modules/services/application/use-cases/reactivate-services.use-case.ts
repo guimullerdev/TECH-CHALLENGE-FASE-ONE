@@ -4,7 +4,7 @@ import { SERVICO_REPOSITORY, IServicoRepository } from '../../domain/repositorie
 import { Servico } from '../../domain/entities/services.entity';
 
 @Injectable()
-export class DeactivateServicoUseCase {
+export class ReactivateServicoUseCase {
     constructor(
         @Inject(SERVICO_REPOSITORY)
         private readonly repo: IServicoRepository,
@@ -13,7 +13,7 @@ export class DeactivateServicoUseCase {
     async execute(id: string): Promise<Servico> {
         const existing = await this.repo.findById(id);
         if (!existing) throw new NotFoundException(`Serviço ${id} não encontrado`);
-        const deactivated = existing.deactivate();
-        return this.repo.update(deactivated);
+        const reactivated = existing.reactivate();
+        return this.repo.update(reactivated);
     }
 }

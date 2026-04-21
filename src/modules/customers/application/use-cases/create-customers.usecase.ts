@@ -1,18 +1,26 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { ConflictException, Inject, Injectable } from '@nestjs/common';
 
-import { CreateCustomerDto } from "../dto/create-customers.dto";
-import { Customer } from "../../domain/entities/customers.entity";
-import type { CustomerRepository } from "../../domain/repositories/customers.repository.interface";
+import { CLIENTE_REPOSITORY, IClienteRepository } from '../../domain/repositories/customers.repository.interface';
+import { Cliente } from '../../domain/entities/customers.entity';
+import { CreateClienteDto } from '../dto/create-customers.dto';
 
 @Injectable()
-export class CreateCustomerUseCase {
+export class CreateClienteUseCase {
     constructor(
-        @Inject('CustomerRepository')
-        private readonly repo: CustomerRepository
-    ) { }
+        @Inject(CLIENTE_REPOSITORY)
+        private readonly repo: IClienteRepository,
+    ) {}
 
-    async execute(dto: CreateCustomerDto) {
-        const customer = Customer.create(dto);
-        return await this.repo.create(customer);
+    async execute(dto: CreateClienteDto): Promise<Cliente> {
+        const existing = await this.repo.findByCpf(dto.cpf);
+        if (existing) throw new ConflictException(`CPF ${dto.cpf} já cadastrado`);
+        const cliente = Cliente.create({
+            nome: dto.nome,
+            cpf: dto.cpf,
+            telefone: dto.telefone,
+            email: dto.email,
+            endereco: dto.endereco,
+        });
+        return this.repo.create(cliente);
     }
 }

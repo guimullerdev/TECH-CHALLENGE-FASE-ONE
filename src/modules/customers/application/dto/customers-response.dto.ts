@@ -1,21 +1,30 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class CustomerResponseDto {
+export class ClienteResponseDto {
     @ApiProperty({ example: 'a3e4f5b6-1234-5678-9abc-def012345678' })
     id: string;
 
     @ApiProperty({ example: 'João Silva' })
-    name: string;
+    nome: string;
 
-    @ApiProperty({ example: '12345678901', description: 'CPF ou CNPJ' })
-    document: string;
+    @ApiProperty({ example: '12345678901' })
+    cpf: string;
 
-    @ApiProperty({ example: 'joao@email.com' })
-    email: string;
+    @ApiPropertyOptional({ example: '11999990000' })
+    telefone?: string;
 
-    @ApiProperty({ example: '11999990000' })
-    phone: string;
+    @ApiPropertyOptional({ example: 'joao@email.com' })
+    email?: string;
+
+    @ApiPropertyOptional({ example: 'Rua das Flores, 123' })
+    endereco?: string;
+
+    @ApiProperty({ example: true })
+    ativo: boolean;
 
     @ApiProperty({ example: '2026-04-16T10:00:00.000Z' })
     createdAt: Date;
+
+    @ApiProperty({ example: '2026-04-16T10:00:00.000Z' })
+    updatedAt: Date;
 }

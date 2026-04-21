@@ -1,42 +1,47 @@
-import { Controller, Post, Get, Patch, Delete, Body, Param, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Post, Get, Put, Patch, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CreateClienteUseCase } from '../application/use-cases/create-customers.usecase';
+import { GetClienteUseCase } from '../application/use-cases/get-customers.usecase';
+import { UpdateClienteUseCase } from '../application/use-cases/update-customers.usecase';
+import { DeactivateClienteUseCase } from '../application/use-cases/delete-customers.usecase';
+import { CreateClienteDto } from '../application/dto/create-customers.dto';
+import { UpdateClienteDto } from '../application/dto/update-customers.dto';
 
-import { CreateCustomerUseCase } from '../application/use-cases/create-customers.usecase';
-import { GetCustomerUseCase } from '../application/use-cases/get-customers.usecase';
-import { UpdateCustomerUseCase } from '../application/use-cases/update-customers.usecase';
-import { DeleteCustomerUseCase } from '../application/use-cases/delete-customers.usecase';
-import { CreateCustomerDto } from '../application/dto/create-customers.dto';
-import { UpdateCustomerDto } from '../application/dto/update-customers.dto';
-
-@ApiTags('customers')
+@ApiTags('clientes')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
-@Controller('customers')
+@Controller('clientes')
 export class CustomersController {
     constructor(
-        private readonly createCustomerUseCase: CreateCustomerUseCase,
-        private readonly getCustomerUseCase: GetCustomerUseCase,
-        private readonly updateCustomerUseCase: UpdateCustomerUseCase,
-        private readonly deleteCustomerUseCase: DeleteCustomerUseCase,
-    ) { }
+        private readonly createClienteUseCase: CreateClienteUseCase,
+        private readonly getClienteUseCase: GetClienteUseCase,
+        private readonly updateClienteUseCase: UpdateClienteUseCase,
+        private readonly deactivateClienteUseCase: DeactivateClienteUseCase,
+    ) {}
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({ summary: 'Criar cliente' })
     @ApiResponse({ status: 201, description: 'Cliente criado com sucesso' })
     @ApiResponse({ status: 400, description: 'Dados inválidos' })
-    @ApiResponse({ status: 409, description: 'Documento já cadastrado' })
-    create(@Body() dto: CreateCustomerDto) {
-        return this.createCustomerUseCase.execute(dto);
+    @ApiResponse({ status: 409, description: 'CPF já cadastrado' })
+    create(@Body() dto: CreateClienteDto) {
+        return this.createClienteUseCase.execute(dto);
     }
 
     @Get()
-    @ApiOperation({ summary: 'Listar todos os clientes' })
+    @ApiOperation({ summary: 'Listar clientes com filtros opcionais' })
+    @ApiQuery({ name: 'nome', required: false })
+    @ApiQuery({ name: 'cpf', required: false })
+    @ApiQuery({ name: 'ativo', required: false, type: Boolean })
     @ApiResponse({ status: 200, description: 'Lista de clientes' })
-    findAll() {
-        return this.getCustomerUseCase.executeAll();
+    findAll(
+        @Query('nome') nome?: string,
+        @Query('cpf') cpf?: string,
+        @Query('ativo') ativo?: string,
+    ) {
+        const ativoFilter = ativo !== undefined ? ativo === 'true' : undefined;
+        return this.getClienteUseCase.executeAll({ nome, cpf, ativo: ativoFilter });
     }
 
     @Get(':id')
@@ -45,26 +50,24 @@ export class CustomersController {
     @ApiResponse({ status: 200, description: 'Cliente encontrado' })
     @ApiResponse({ status: 404, description: 'Cliente não encontrado' })
     findOne(@Param('id') id: string) {
-        return this.getCustomerUseCase.execute(id);
+        return this.getClienteUseCase.execute(id);
     }
 
-    @Patch(':id')
+    @Put(':id')
     @ApiOperation({ summary: 'Atualizar cliente' })
     @ApiParam({ name: 'id', description: 'UUID do cliente' })
     @ApiResponse({ status: 200, description: 'Cliente atualizado' })
     @ApiResponse({ status: 404, description: 'Cliente não encontrado' })
-    @ApiResponse({ status: 409, description: 'Documento já cadastrado para outro cliente' })
-    update(@Param('id') id: string, @Body() dto: UpdateCustomerDto) {
-        return this.updateCustomerUseCase.execute(id, dto);
+    update(@Param('id') id: string, @Body() dto: UpdateClienteDto) {
+        return this.updateClienteUseCase.execute(id, dto);
     }
 
-    @Delete(':id')
-    @HttpCode(HttpStatus.NO_CONTENT)
-    @ApiOperation({ summary: 'Remover cliente' })
+    @Patch(':id/desativar')
+    @ApiOperation({ summary: 'Desativar cliente' })
     @ApiParam({ name: 'id', description: 'UUID do cliente' })
-    @ApiResponse({ status: 204, description: 'Cliente removido' })
+    @ApiResponse({ status: 200, description: 'Cliente desativado' })
     @ApiResponse({ status: 404, description: 'Cliente não encontrado' })
-    remove(@Param('id') id: string) {
-        return this.deleteCustomerUseCase.execute(id);
+    deactivate(@Param('id') id: string) {
+        return this.deactivateClienteUseCase.execute(id);
     }
 }

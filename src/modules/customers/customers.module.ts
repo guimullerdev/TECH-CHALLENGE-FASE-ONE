@@ -1,25 +1,27 @@
 import { Module } from '@nestjs/common';
 
 import { PrismaModule } from '../../prisma/prisma.module';
+import { CLIENTE_REPOSITORY } from './domain/repositories/customers.repository.interface';
+import { ClientePrismaRepository } from './infrastructure/repositories/customers-prisma.repository';
 import { CustomersController } from './presentation/customers.controller';
-import { CreateCustomerUseCase } from './application/use-cases/create-customers.usecase';
-import { GetCustomerUseCase } from './application/use-cases/get-customers.usecase';
-import { UpdateCustomerUseCase } from './application/use-cases/update-customers.usecase';
-import { DeleteCustomerUseCase } from './application/use-cases/delete-customers.usecase';
-import { CustomerPrismaRepository } from './infrastructure/repositories/customers-prisma.repository';
+import { CreateClienteUseCase } from './application/use-cases/create-customers.usecase';
+import { GetClienteUseCase } from './application/use-cases/get-customers.usecase';
+import { UpdateClienteUseCase } from './application/use-cases/update-customers.usecase';
+import { DeactivateClienteUseCase } from './application/use-cases/delete-customers.usecase';
 
 @Module({
     imports: [PrismaModule],
     controllers: [CustomersController],
     providers: [
-        CreateCustomerUseCase,
-        GetCustomerUseCase,
-        UpdateCustomerUseCase,
-        DeleteCustomerUseCase,
+        CreateClienteUseCase,
+        GetClienteUseCase,
+        UpdateClienteUseCase,
+        DeactivateClienteUseCase,
         {
-            provide: 'CustomerRepository',
-            useClass: CustomerPrismaRepository,
+            provide: CLIENTE_REPOSITORY,
+            useClass: ClientePrismaRepository,
         },
     ],
+    exports: [CLIENTE_REPOSITORY],
 })
-export class CustomersModule { }
+export class CustomersModule {}

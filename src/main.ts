@@ -21,11 +21,13 @@ async function bootstrap() {
     )
     .setVersion('1.0')
     .addTag('auth', 'Autenticação e emissão de tokens')
-    .addTag('customers', 'Gestão de clientes')
-    .addTag('vehicles', 'Gestão de veículos')
-    .addTag('services', 'Catálogo de serviços')
-    .addTag('parts', 'Estoque de peças')
-    .addTag('service-orders', 'Ordens de serviço')
+    .addTag('clientes', 'Gestão de clientes')
+    .addTag('veiculos', 'Gestão de veículos')
+    .addTag('servicos', 'Catálogo de serviços')
+    .addTag('pecas', 'Gestão de peças')
+    .addTag('os', 'Ordens de serviço')
+    .addTag('estoque', 'Controle de estoque')
+    .addTag('orcamentos', 'Orçamentos')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

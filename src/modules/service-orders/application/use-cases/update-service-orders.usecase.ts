@@ -1,20 +1,23 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 
-import type { ServiceOrderRepository } from '../../domain/repositories/service-orders.repository.interface';
-import { ServiceOrder } from '../../domain/entities/service-orders.entity';
-import { UpdateServiceOrderDto } from '../dto/update-service-orders.dto';
+import { ORDEM_DE_SERVICO_REPOSITORY, IOrdemDeServicoRepository } from '../../domain/repositories/service-orders.repository.interface';
+import { OrdemDeServico } from '../../domain/entities/service-orders.entity';
+
+export class UpdateOsDto {
+    descricaoProblema?: string;
+}
 
 @Injectable()
-export class UpdateServiceOrderUseCase {
+export class UpdateOrdemDeServicoUseCase {
     constructor(
-        @Inject('ServiceOrderRepository')
-        private readonly repo: ServiceOrderRepository,
-    ) { }
+        @Inject(ORDEM_DE_SERVICO_REPOSITORY)
+        private readonly repo: IOrdemDeServicoRepository,
+    ) {}
 
-    async execute(id: string, dto: UpdateServiceOrderDto): Promise<ServiceOrder> {
-        const order = await this.repo.findById(id);
-        if (!order) throw new NotFoundException(`Ordem de serviço ${id} não encontrada`);
-        const updated = order.update({ description: dto.description });
-        return this.repo.save(updated);
+    async execute(id: string, dto: UpdateOsDto): Promise<OrdemDeServico> {
+        const os = await this.repo.findById(id);
+        if (!os) throw new NotFoundException(`Ordem de serviço ${id} não encontrada`);
+        const updated = os.update({ descricaoProblema: dto.descricaoProblema });
+        return this.repo.update(updated);
     }
 }

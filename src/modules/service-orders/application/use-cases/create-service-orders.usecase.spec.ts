@@ -1,47 +1,40 @@
-import { CreateServiceOrderUseCase } from './create-service-orders.usecase';
-import { ServiceOrder, ServiceOrderStatus } from '../../domain/entities/service-orders.entity';
-import type { ServiceOrderRepository } from '../../domain/repositories/service-orders.repository.interface';
+import { CreateOrdemDeServicoUseCase } from './create-service-orders.usecase';
+import { OrdemDeServico, StatusOS } from '../../domain/entities/service-orders.entity';
+import { IOrdemDeServicoRepository } from '../../domain/repositories/service-orders.repository.interface';
 
-const makeOrder = () =>
-    ServiceOrder.create({ customerId: 'c-1', vehicleId: 'v-1', description: 'desc' });
-
-const mockRepo = (): jest.Mocked<ServiceOrderRepository> => ({
-    findById: jest.fn(),
+const mockRepo = (): jest.Mocked<IOrdemDeServicoRepository> => ({
     findAll: jest.fn(),
+    findById: jest.fn(),
     create: jest.fn(),
-    save: jest.fn(),
-    delete: jest.fn(),
-    addService: jest.fn(),
-    removeService: jest.fn(),
-    addPart: jest.fn(),
-    removePart: jest.fn(),
-    reserveStockAndApprove: jest.fn(),
+    update: jest.fn(),
+    generateNumero: jest.fn(),
 });
 
-describe('CreateServiceOrderUseCase', () => {
+describe('CreateOrdemDeServicoUseCase', () => {
     it('creates a service order and returns it', async () => {
         const repo = mockRepo();
-        const order = makeOrder();
-        repo.create.mockResolvedValue(order);
+        repo.generateNumero.mockResolvedValue('OS-001');
+        repo.create.mockImplementation(async (o) => o);
 
-        const useCase = new CreateServiceOrderUseCase(repo);
-        const result = await useCase.execute({ customerId: 'c-1', vehicleId: 'v-1', description: 'desc' });
+        const useCase = new CreateOrdemDeServicoUseCase(repo as any);
+        const result = await useCase.execute({ clienteId: 'c-1', veiculoId: 'v-1' });
 
         expect(repo.create).toHaveBeenCalledTimes(1);
-        expect(result.status).toBe(ServiceOrderStatus.RECEIVED);
-        expect(result.totalPrice).toBe(0);
+        expect(result.status).toBe(StatusOS.RECEBIDA);
+        expect(result.numero).toBe('OS-001');
     });
 
     it('passes the correct entity to repo.create', async () => {
         const repo = mockRepo();
+        repo.generateNumero.mockResolvedValue('OS-002');
         repo.create.mockImplementation(async (o) => o);
 
-        const useCase = new CreateServiceOrderUseCase(repo);
-        const result = await useCase.execute({ customerId: 'c-1', vehicleId: 'v-1', description: 'Teste' });
+        const useCase = new CreateOrdemDeServicoUseCase(repo as any);
+        const result = await useCase.execute({ clienteId: 'c-1', veiculoId: 'v-1', descricaoProblema: 'Problema' });
 
-        const saved = repo.create.mock.calls[0][0] as ServiceOrder;
-        expect(saved.customerId).toBe('c-1');
-        expect(saved.vehicleId).toBe('v-1');
-        expect(saved.description).toBe('Teste');
+        const saved = repo.create.mock.calls[0][0] as OrdemDeServico;
+        expect(saved.clienteId).toBe('c-1');
+        expect(saved.veiculoId).toBe('v-1');
+        expect(saved.descricaoProblema).toBe('Problema');
     });
 });

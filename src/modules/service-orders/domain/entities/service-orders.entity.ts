@@ -229,6 +229,23 @@ export class OrdemDeServico {
         }
         return new OrdemDeServico({ ...this.props, status: StatusOS.ENTREGUE, updatedAt: new Date() });
     }
+
+    toJSON() {
+        return {
+            id: this.props.id,
+            numero: this.props.numero,
+            clienteId: this.props.clienteId,
+            veiculoId: this.props.veiculoId,
+            status: this.props.status,
+            descricaoProblema: this.props.descricaoProblema,
+            servicos: this.props.servicos,
+            pecas: this.props.pecas,
+            dataAbertura: this.props.dataAbertura,
+            dataFechamento: this.props.dataFechamento,
+            createdAt: this.props.createdAt,
+            updatedAt: this.props.updatedAt,
+        };
+    }
 }
 
 export class InvalidTransitionError extends Error {

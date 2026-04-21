@@ -1,37 +1,36 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 
-import type { ServiceOrderRepository } from '../../domain/repositories/service-orders.repository.interface';
-import { ServiceOrder } from '../../domain/entities/service-orders.entity';
-import { ServicesRepository } from 'src/modules/services/domain/repositories/services.repository';
+import { ORDEM_DE_SERVICO_REPOSITORY, IOrdemDeServicoRepository } from '../../domain/repositories/service-orders.repository.interface';
+import { SERVICO_REPOSITORY, IServicoRepository } from '../../../services/domain/repositories/services.repository';
+import { OrdemDeServico } from '../../domain/entities/service-orders.entity';
 
 @Injectable()
-export class AddServiceToOrderUseCase {
+export class AddServicoToOsUseCase {
     constructor(
-        @Inject('ServiceOrderRepository')
-        private readonly orderRepo: ServiceOrderRepository,
-        private readonly servicesRepo: ServicesRepository,
-    ) { }
+        @Inject(ORDEM_DE_SERVICO_REPOSITORY)
+        private readonly osRepo: IOrdemDeServicoRepository,
+        @Inject(SERVICO_REPOSITORY)
+        private readonly servicoRepo: IServicoRepository,
+    ) {}
 
-    async execute(serviceOrderId: string, serviceId: string): Promise<ServiceOrder> {
-        const order = await this.orderRepo.findById(serviceOrderId);
-        if (!order) throw new NotFoundException(`Ordem de serviço ${serviceOrderId} não encontrada`);
+    async execute(osId: string, servicoId: string): Promise<OrdemDeServico> {
+        const os = await this.osRepo.findById(osId);
+        if (!os) throw new NotFoundException(`Ordem de serviço ${osId} não encontrada`);
 
-        const service = await this.servicesRepo.findById(serviceId);
-        if (!service) throw new NotFoundException(`Serviço ${serviceId} não encontrado`);
+        const servico = await this.servicoRepo.findById(servicoId);
+        if (!servico) throw new NotFoundException(`Serviço ${servicoId} não encontrado`);
 
-        let updatedOrder: ServiceOrder;
+        let updated: OrdemDeServico;
         try {
-            updatedOrder = order.addService({
+            updated = os.addServico({
                 id: crypto.randomUUID(),
-                serviceId,
-                price: service.price,
+                servicoId,
+                precoUnitario: servico.precoBase,
             });
         } catch (err: any) {
             throw new ConflictException(err.message);
         }
 
-        await this.orderRepo.addService(serviceOrderId, serviceId, updatedOrder.totalPrice);
-        const result = await this.orderRepo.findById(serviceOrderId);
-        return result!;
+        return this.osRepo.update(updated);
     }
 }

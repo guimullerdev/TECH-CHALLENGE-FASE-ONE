@@ -1,25 +1,32 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 
-import type { ServiceOrderRepository } from '../../domain/repositories/service-orders.repository.interface';
-import { ServiceOrder } from '../../domain/entities/service-orders.entity';
+import { ORDEM_DE_SERVICO_REPOSITORY, IOrdemDeServicoRepository } from '../../domain/repositories/service-orders.repository.interface';
+import { LiberarReservaUseCase } from '../../../estoque/application/use-cases/liberar-reserva.usecase';
+import { OrdemDeServico } from '../../domain/entities/service-orders.entity';
 
 @Injectable()
-export class RemovePartFromOrderUseCase {
+export class RemovePecaFromOsUseCase {
     constructor(
-        @Inject('ServiceOrderRepository')
-        private readonly orderRepo: ServiceOrderRepository,
-    ) { }
+        @Inject(ORDEM_DE_SERVICO_REPOSITORY)
+        private readonly osRepo: IOrdemDeServicoRepository,
+        private readonly liberarReservaUseCase: LiberarReservaUseCase,
+    ) {}
 
-    async execute(serviceOrderId: string, partId: string): Promise<ServiceOrder> {
-        const order = await this.orderRepo.findById(serviceOrderId);
-        if (!order) throw new NotFoundException(`Ordem de serviço ${serviceOrderId} não encontrada`);
+    async execute(osId: string, pecaId: string): Promise<OrdemDeServico> {
+        const os = await this.osRepo.findById(osId);
+        if (!os) throw new NotFoundException(`Ordem de serviço ${osId} não encontrada`);
 
-        const exists = order.parts.some(p => p.partId === partId);
-        if (!exists) throw new NotFoundException(`Peça ${partId} não encontrada na OS`);
+        const item = os.pecas.find(p => p.pecaId === pecaId);
+        if (!item) throw new NotFoundException(`Peça ${pecaId} não encontrada na OS`);
 
-        const updatedOrder = order.removePart(partId);
-        await this.orderRepo.removePart(serviceOrderId, partId, updatedOrder.totalPrice);
-        const result = await this.orderRepo.findById(serviceOrderId);
-        return result!;
+        await this.liberarReservaUseCase.execute({
+            pecaId,
+            quantidade: item.quantidade,
+            osId,
+            observacao: `Liberação por remoção de peça da OS ${os.numero}`,
+        });
+
+        const updated = os.removePeca(pecaId);
+        return this.osRepo.update(updated);
     }
 }

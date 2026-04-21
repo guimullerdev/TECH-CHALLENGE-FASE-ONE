@@ -9,207 +9,200 @@ import {
     Patch,
     Post,
     Query,
-    UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-
-import { CreateServiceOrderUseCase } from '../application/use-cases/create-service-orders.usecase';
-import { GetServiceOrderUseCase } from '../application/use-cases/get-service-orders.usecase';
-import { UpdateServiceOrderUseCase } from '../application/use-cases/update-service-orders.usecase';
-import { DeleteServiceOrderUseCase } from '../application/use-cases/delete-service-orders.usecase';
-import { AddServiceToOrderUseCase } from '../application/use-cases/add-service-to-order.usecase';
-import { RemoveServiceFromOrderUseCase } from '../application/use-cases/remove-service-from-order.usecase';
-import { AddPartToOrderUseCase } from '../application/use-cases/add-part-to-order.usecase';
-import { RemovePartFromOrderUseCase } from '../application/use-cases/remove-part-from-order.usecase';
+import { CreateOrdemDeServicoUseCase } from '../application/use-cases/create-service-orders.usecase';
+import { GetOrdemDeServicoUseCase } from '../application/use-cases/get-service-orders.usecase';
+import { AddServicoToOsUseCase } from '../application/use-cases/add-service-to-order.usecase';
+import { RemoveServicoFromOsUseCase } from '../application/use-cases/remove-service-from-order.usecase';
+import { AddPecaToOsUseCase } from '../application/use-cases/add-part-to-order.usecase';
+import { RemovePecaFromOsUseCase } from '../application/use-cases/remove-part-from-order.usecase';
 import { StartDiagnosisUseCase } from '../application/use-cases/start-diagnosis.usecase';
 import { FinishDiagnosisUseCase } from '../application/use-cases/finish-diagnosis.usecase';
-import { SendBudgetUseCase } from '../application/use-cases/send-budget.usecase';
-import { ApproveBudgetUseCase } from '../application/use-cases/approve-budget.usecase';
-import { RejectBudgetUseCase } from '../application/use-cases/reject-budget.usecase';
+import { IniciarExecucaoUseCase } from '../application/use-cases/iniciar-execucao.usecase';
+import { RealizarServicoUseCase } from '../application/use-cases/realizar-servico.usecase';
+import { UtilizarPecaUseCase } from '../application/use-cases/utilizar-peca.usecase';
 import { FinishOrderUseCase } from '../application/use-cases/finish-order.usecase';
+import { LiberarVeiculoUseCase } from '../application/use-cases/liberar-veiculo.usecase';
 import { DeliverOrderUseCase } from '../application/use-cases/deliver-order.usecase';
 
-import { CreateServiceOrderDto } from '../application/dto/create-service-orders.dto';
-import { UpdateServiceOrderDto } from '../application/dto/update-service-orders.dto';
-import { AddServiceToOrderDto } from '../application/dto/add-service-to-order.dto';
-import { AddPartToOrderDto } from '../application/dto/add-part-to-order.dto';
-import { ServiceOrderStatus } from '../domain/entities/service-orders.entity';
+import { CreateOsDto } from '../application/dto/create-service-orders.dto';
+import { AddServicoDto } from '../application/dto/add-service-to-order.dto';
+import { AddPecaDto } from '../application/dto/add-part-to-order.dto';
+import { RealizarServicoDto } from '../application/dto/realizar-servico.dto';
+import { StatusOS } from '../domain/entities/service-orders.entity';
 
-@ApiTags('service-orders')
+@ApiTags('os')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
-@Controller('service-orders')
+@Controller('os')
 export class ServiceOrdersController {
     constructor(
-        private readonly createServiceOrderUseCase: CreateServiceOrderUseCase,
-        private readonly getServiceOrderUseCase: GetServiceOrderUseCase,
-        private readonly updateServiceOrderUseCase: UpdateServiceOrderUseCase,
-        private readonly deleteServiceOrderUseCase: DeleteServiceOrderUseCase,
-        private readonly addServiceToOrderUseCase: AddServiceToOrderUseCase,
-        private readonly removeServiceFromOrderUseCase: RemoveServiceFromOrderUseCase,
-        private readonly addPartToOrderUseCase: AddPartToOrderUseCase,
-        private readonly removePartFromOrderUseCase: RemovePartFromOrderUseCase,
+        private readonly createOsUseCase: CreateOrdemDeServicoUseCase,
+        private readonly getOsUseCase: GetOrdemDeServicoUseCase,
+        private readonly addServicoUseCase: AddServicoToOsUseCase,
+        private readonly removeServicoUseCase: RemoveServicoFromOsUseCase,
+        private readonly addPecaUseCase: AddPecaToOsUseCase,
+        private readonly removePecaUseCase: RemovePecaFromOsUseCase,
         private readonly startDiagnosisUseCase: StartDiagnosisUseCase,
         private readonly finishDiagnosisUseCase: FinishDiagnosisUseCase,
-        private readonly sendBudgetUseCase: SendBudgetUseCase,
-        private readonly approveBudgetUseCase: ApproveBudgetUseCase,
-        private readonly rejectBudgetUseCase: RejectBudgetUseCase,
+        private readonly iniciarExecucaoUseCase: IniciarExecucaoUseCase,
+        private readonly realizarServicoUseCase: RealizarServicoUseCase,
+        private readonly utilizarPecaUseCase: UtilizarPecaUseCase,
         private readonly finishOrderUseCase: FinishOrderUseCase,
+        private readonly liberarVeiculoUseCase: LiberarVeiculoUseCase,
         private readonly deliverOrderUseCase: DeliverOrderUseCase,
-    ) { }
+    ) {}
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({ summary: 'Abrir nova ordem de serviço' })
-    @ApiResponse({ status: 201, description: 'OS criada com status RECEIVED' })
+    @ApiResponse({ status: 201, description: 'OS criada com status RECEBIDA' })
     @ApiResponse({ status: 400, description: 'Dados inválidos' })
-    @ApiResponse({ status: 404, description: 'Cliente ou veículo não encontrado' })
-    create(@Body() dto: CreateServiceOrderDto) {
-        return this.createServiceOrderUseCase.execute(dto);
+    create(@Body() dto: CreateOsDto) {
+        return this.createOsUseCase.execute(dto);
     }
 
     @Get()
-    @ApiOperation({ summary: 'Listar ordens de serviço' })
-    @ApiQuery({ name: 'status', required: false, enum: ServiceOrderStatus })
-    @ApiResponse({ status: 200, description: 'Lista de OS, opcionalmente filtrada por status' })
-    findAll(@Query('status') status?: ServiceOrderStatus) {
-        return this.getServiceOrderUseCase.executeAll(status);
+    @ApiOperation({ summary: 'Listar ordens de serviço com filtros opcionais' })
+    @ApiQuery({ name: 'status', required: false, enum: StatusOS })
+    @ApiQuery({ name: 'clienteId', required: false })
+    @ApiQuery({ name: 'veiculoId', required: false })
+    @ApiResponse({ status: 200, description: 'Lista de OS' })
+    findAll(
+        @Query('status') status?: StatusOS,
+        @Query('clienteId') clienteId?: string,
+        @Query('veiculoId') veiculoId?: string,
+    ) {
+        return this.getOsUseCase.executeAll({ status, clienteId, veiculoId });
     }
 
     @Get(':id')
-    @ApiOperation({ summary: 'Buscar OS por ID (inclui serviços, peças e totalPrice)' })
+    @ApiOperation({ summary: 'Buscar OS por ID' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })
-    @ApiResponse({ status: 200, description: 'OS com itens e totalPrice' })
+    @ApiResponse({ status: 200, description: 'OS encontrada com itens' })
     @ApiResponse({ status: 404, description: 'OS não encontrada' })
     findOne(@Param('id') id: string) {
-        return this.getServiceOrderUseCase.execute(id);
+        return this.getOsUseCase.execute(id);
     }
 
-    @Patch(':id')
-    @ApiOperation({ summary: 'Atualizar descrição da OS' })
-    @ApiParam({ name: 'id', description: 'UUID da OS' })
-    @ApiResponse({ status: 200, description: 'OS atualizada' })
-    @ApiResponse({ status: 404, description: 'OS não encontrada' })
-    update(@Param('id') id: string, @Body() dto: UpdateServiceOrderDto) {
-        return this.updateServiceOrderUseCase.execute(id, dto);
-    }
-
-    @Delete(':id')
-    @HttpCode(HttpStatus.NO_CONTENT)
-    @ApiOperation({ summary: 'Remover OS' })
-    @ApiParam({ name: 'id', description: 'UUID da OS' })
-    @ApiResponse({ status: 204, description: 'OS removida' })
-    @ApiResponse({ status: 404, description: 'OS não encontrada' })
-    remove(@Param('id') id: string) {
-        return this.deleteServiceOrderUseCase.execute(id);
-    }
-
-    @Post(':id/services')
+    @Post(':id/servicos')
+    @HttpCode(HttpStatus.CREATED)
     @ApiOperation({ summary: 'Adicionar serviço à OS' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })
-    @ApiResponse({ status: 201, description: 'Serviço adicionado; totalPrice recalculado' })
+    @ApiResponse({ status: 201, description: 'Serviço adicionado' })
     @ApiResponse({ status: 404, description: 'OS ou serviço não encontrado' })
     @ApiResponse({ status: 409, description: 'Serviço já adicionado à OS' })
-    addService(@Param('id') id: string, @Body() dto: AddServiceToOrderDto) {
-        return this.addServiceToOrderUseCase.execute(id, dto.serviceId);
+    addServico(@Param('id') id: string, @Body() dto: AddServicoDto) {
+        return this.addServicoUseCase.execute(id, dto.servicoId);
     }
 
-    @Delete(':id/services/:serviceId')
-    @HttpCode(HttpStatus.NO_CONTENT)
+    @Delete(':id/servicos/:itemId')
+    @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Remover serviço da OS' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })
-    @ApiParam({ name: 'serviceId', description: 'UUID do serviço' })
-    @ApiResponse({ status: 204, description: 'Serviço removido; totalPrice recalculado' })
+    @ApiParam({ name: 'itemId', description: 'servicoId do item' })
+    @ApiResponse({ status: 200, description: 'Serviço removido' })
     @ApiResponse({ status: 404, description: 'OS ou serviço não encontrado na OS' })
-    removeService(@Param('id') id: string, @Param('serviceId') serviceId: string) {
-        return this.removeServiceFromOrderUseCase.execute(id, serviceId);
+    removeServico(@Param('id') id: string, @Param('itemId') itemId: string) {
+        return this.removeServicoUseCase.execute(id, itemId);
     }
 
-    @Post(':id/parts')
+    @Post(':id/pecas')
+    @HttpCode(HttpStatus.CREATED)
     @ApiOperation({ summary: 'Adicionar peça à OS' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })
-    @ApiResponse({ status: 201, description: 'Peça adicionada; resposta inclui stockAvailable e stockQty' })
+    @ApiResponse({ status: 201, description: 'Peça adicionada; estoque reservado' })
     @ApiResponse({ status: 400, description: 'Quantidade < 1' })
     @ApiResponse({ status: 404, description: 'OS ou peça não encontrada' })
-    @ApiResponse({ status: 409, description: 'Peça já adicionada à OS' })
-    addPart(@Param('id') id: string, @Body() dto: AddPartToOrderDto) {
-        return this.addPartToOrderUseCase.execute(id, dto.partId, dto.quantity);
+    @ApiResponse({ status: 422, description: 'Estoque disponível insuficiente' })
+    addPeca(@Param('id') id: string, @Body() dto: AddPecaDto) {
+        return this.addPecaUseCase.execute(id, dto.pecaId, dto.quantidade);
     }
 
-    @Delete(':id/parts/:partId')
-    @HttpCode(HttpStatus.NO_CONTENT)
+    @Delete(':id/pecas/:itemId')
+    @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Remover peça da OS' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })
-    @ApiParam({ name: 'partId', description: 'UUID da peça' })
-    @ApiResponse({ status: 204, description: 'Peça removida; totalPrice recalculado' })
+    @ApiParam({ name: 'itemId', description: 'pecaId do item' })
+    @ApiResponse({ status: 200, description: 'Peça removida; reserva liberada' })
     @ApiResponse({ status: 404, description: 'OS ou peça não encontrada na OS' })
-    removePart(@Param('id') id: string, @Param('partId') partId: string) {
-        return this.removePartFromOrderUseCase.execute(id, partId);
+    removePeca(@Param('id') id: string, @Param('itemId') itemId: string) {
+        return this.removePecaUseCase.execute(id, itemId);
     }
 
-    @Post(':id/start-diagnosis')
-    @ApiOperation({ summary: 'Iniciar diagnóstico (RECEIVED → DIAGNOSING)' })
+    @Patch(':id/iniciar-diagnostico')
+    @ApiOperation({ summary: 'Iniciar diagnóstico (RECEBIDA → EM_DIAGNOSTICO)' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })
-    @ApiResponse({ status: 201, description: 'Status atualizado para DIAGNOSING' })
-    @ApiResponse({ status: 404, description: 'OS não encontrada' })
-    @ApiResponse({ status: 422, description: 'Transição inválida: status atual não é RECEIVED' })
+    @ApiResponse({ status: 200, description: 'Status atualizado para EM_DIAGNOSTICO' })
+    @ApiResponse({ status: 422, description: 'Transição inválida' })
     startDiagnosis(@Param('id') id: string) {
         return this.startDiagnosisUseCase.execute(id);
     }
 
-    @Post(':id/finish-diagnosis')
-    @ApiOperation({ summary: 'Concluir diagnóstico (DIAGNOSING → WAITING_APPROVAL)' })
+    @Patch(':id/concluir-diagnostico')
+    @ApiOperation({ summary: 'Concluir diagnóstico (EM_DIAGNOSTICO → AGUARDANDO_APROVACAO)' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })
-    @ApiResponse({ status: 201, description: 'Status atualizado para WAITING_APPROVAL; totalPrice recalculado' })
-    @ApiResponse({ status: 422, description: 'Transição inválida: status atual não é DIAGNOSING' })
+    @ApiResponse({ status: 200, description: 'Status atualizado; orçamento gerado automaticamente' })
+    @ApiResponse({ status: 422, description: 'Transição inválida' })
     finishDiagnosis(@Param('id') id: string) {
         return this.finishDiagnosisUseCase.execute(id);
     }
 
-    @Post(':id/send-budget')
-    @ApiOperation({ summary: 'Validar e formalizar envio do orçamento' })
+    @Patch(':id/iniciar-execucao')
+    @ApiOperation({ summary: 'Iniciar execução (APROVADA → EM_EXECUCAO)' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })
-    @ApiResponse({ status: 201, description: 'Orçamento válido; retorna OS com itens e totalPrice' })
-    @ApiResponse({ status: 422, description: 'totalPrice == 0 ou status não é WAITING_APPROVAL' })
-    sendBudget(@Param('id') id: string) {
-        return this.sendBudgetUseCase.execute(id);
+    @ApiResponse({ status: 200, description: 'Status atualizado para EM_EXECUCAO' })
+    @ApiResponse({ status: 422, description: 'Transição inválida' })
+    iniciarExecucao(@Param('id') id: string) {
+        return this.iniciarExecucaoUseCase.execute(id);
     }
 
-    @Post(':id/approve-budget')
-    @ApiOperation({ summary: 'Aprovar orçamento (WAITING_APPROVAL → IN_PROGRESS)' })
+    @Patch(':id/servicos/:itemId/realizar')
+    @ApiOperation({ summary: 'Registrar execução de serviço' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })
-    @ApiResponse({ status: 201, description: 'Orçamento aprovado; estoque reservado atomicamente' })
-    @ApiResponse({ status: 422, description: 'Transição inválida ou estoque insuficiente' })
-    approveBudget(@Param('id') id: string) {
-        return this.approveBudgetUseCase.execute(id);
+    @ApiParam({ name: 'itemId', description: 'ID do item de serviço' })
+    @ApiResponse({ status: 200, description: 'Execução registrada' })
+    realizarServico(
+        @Param('id') id: string,
+        @Param('itemId') itemId: string,
+        @Body() dto: RealizarServicoDto,
+    ) {
+        return this.realizarServicoUseCase.execute(id, itemId, new Date(dto.inicio), new Date(dto.fim));
     }
 
-    @Post(':id/reject-budget')
-    @ApiOperation({ summary: 'Rejeitar orçamento (WAITING_APPROVAL → RECEIVED)' })
+    @Patch(':id/pecas/:itemId/utilizar')
+    @ApiOperation({ summary: 'Marcar peça como utilizada e registrar baixa' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })
-    @ApiResponse({ status: 201, description: 'Orçamento rejeitado; status volta para RECEIVED' })
-    @ApiResponse({ status: 422, description: 'Transição inválida: status atual não é WAITING_APPROVAL' })
-    rejectBudget(@Param('id') id: string) {
-        return this.rejectBudgetUseCase.execute(id);
+    @ApiParam({ name: 'itemId', description: 'ID do item de peça' })
+    @ApiResponse({ status: 200, description: 'Peça marcada como utilizada; baixa registrada' })
+    utilizarPeca(@Param('id') id: string, @Param('itemId') itemId: string) {
+        return this.utilizarPecaUseCase.execute(id, itemId);
     }
 
-    @Post(':id/finish')
-    @ApiOperation({ summary: 'Finalizar OS (IN_PROGRESS → FINISHED)' })
+    @Patch(':id/finalizar-execucao')
+    @ApiOperation({ summary: 'Finalizar execução (EM_EXECUCAO → FINALIZADA)' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })
-    @ApiResponse({ status: 201, description: 'OS finalizada; baixa de estoque confirmada' })
-    @ApiResponse({ status: 422, description: 'Transição inválida: status atual não é IN_PROGRESS' })
-    finish(@Param('id') id: string) {
+    @ApiResponse({ status: 200, description: 'Execução finalizada' })
+    @ApiResponse({ status: 422, description: 'Transição inválida' })
+    finalizarExecucao(@Param('id') id: string) {
         return this.finishOrderUseCase.execute(id);
     }
 
-    @Post(':id/deliver')
-    @ApiOperation({ summary: 'Entregar veículo (FINISHED → DELIVERED)' })
+    @Patch(':id/liberar-veiculo')
+    @ApiOperation({ summary: 'Liberar veículo (pass-through, OS permanece FINALIZADA)' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })
-    @ApiResponse({ status: 201, description: 'Veículo entregue; OS em estado final imutável' })
-    @ApiResponse({ status: 422, description: 'Transição inválida: status atual não é FINISHED' })
-    deliver(@Param('id') id: string) {
+    @ApiResponse({ status: 200, description: 'Veículo liberado' })
+    liberarVeiculo(@Param('id') id: string) {
+        return this.liberarVeiculoUseCase.execute(id);
+    }
+
+    @Patch(':id/entregar')
+    @ApiOperation({ summary: 'Entregar veículo (FINALIZADA → ENTREGUE)' })
+    @ApiParam({ name: 'id', description: 'UUID da OS' })
+    @ApiResponse({ status: 200, description: 'Veículo entregue; OS em estado final' })
+    @ApiResponse({ status: 422, description: 'Transição inválida' })
+    entregar(@Param('id') id: string) {
         return this.deliverOrderUseCase.execute(id);
     }
 }

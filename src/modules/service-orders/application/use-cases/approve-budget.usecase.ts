@@ -1,41 +1,27 @@
-import {
-    Inject,
-    Injectable,
-    NotFoundException,
-    UnprocessableEntityException,
-} from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 
-import type { ServiceOrderRepository } from '../../domain/repositories/service-orders.repository.interface';
-import {
-    InsufficientStockError,
-    InvalidTransitionError,
-    ServiceOrder,
-} from '../../domain/entities/service-orders.entity';
+import { ORDEM_DE_SERVICO_REPOSITORY, IOrdemDeServicoRepository } from '../../domain/repositories/service-orders.repository.interface';
+import { InvalidTransitionError, OrdemDeServico } from '../../domain/entities/service-orders.entity';
 
 @Injectable()
 export class ApproveBudgetUseCase {
     constructor(
-        @Inject('ServiceOrderRepository')
-        private readonly repo: ServiceOrderRepository,
-    ) { }
+        @Inject(ORDEM_DE_SERVICO_REPOSITORY)
+        private readonly repo: IOrdemDeServicoRepository,
+    ) {}
 
-    async execute(id: string): Promise<ServiceOrder> {
-        const order = await this.repo.findById(id);
-        if (!order) throw new NotFoundException(`Ordem de serviço ${id} não encontrada`);
+    async execute(id: string): Promise<OrdemDeServico> {
+        const os = await this.repo.findById(id);
+        if (!os) throw new NotFoundException(`Ordem de serviço ${id} não encontrada`);
 
-        let updated: ServiceOrder;
+        let updated: OrdemDeServico;
         try {
-            updated = order.approveBudget();
+            updated = os.aprovarOrcamento();
         } catch (err) {
             if (err instanceof InvalidTransitionError) throw new UnprocessableEntityException(err.message);
             throw err;
         }
 
-        try {
-            return await this.repo.reserveStockAndApprove(updated);
-        } catch (err) {
-            if (err instanceof InsufficientStockError) throw new UnprocessableEntityException(err.message);
-            throw err;
-        }
+        return this.repo.update(updated);
     }
 }

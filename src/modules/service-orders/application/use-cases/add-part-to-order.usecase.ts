@@ -1,47 +1,47 @@
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 
-import type { ServiceOrderRepository } from '../../domain/repositories/service-orders.repository.interface';
-import type { PartRepository } from 'src/modules/parts/domain/repositories/parts.repository.interface';
-import { ServiceOrder } from '../../domain/entities/service-orders.entity';
-import { AddPartResponseDto } from '../dto/add-part-response.dto';
+import { ORDEM_DE_SERVICO_REPOSITORY, IOrdemDeServicoRepository } from '../../domain/repositories/service-orders.repository.interface';
+import { PECA_REPOSITORY, IPecaRepository } from '../../../parts/domain/repositories/parts.repository.interface';
+import { ReservarEstoqueUseCase } from '../../../estoque/application/use-cases/reservar-estoque.usecase';
+import { OrdemDeServico } from '../../domain/entities/service-orders.entity';
 
 @Injectable()
-export class AddPartToOrderUseCase {
+export class AddPecaToOsUseCase {
     constructor(
-        @Inject('ServiceOrderRepository')
-        private readonly orderRepo: ServiceOrderRepository,
-        @Inject('PartRepository')
-        private readonly partRepo: PartRepository,
-    ) { }
+        @Inject(ORDEM_DE_SERVICO_REPOSITORY)
+        private readonly osRepo: IOrdemDeServicoRepository,
+        @Inject(PECA_REPOSITORY)
+        private readonly pecaRepo: IPecaRepository,
+        private readonly reservarEstoqueUseCase: ReservarEstoqueUseCase,
+    ) {}
 
-    async execute(serviceOrderId: string, partId: string, quantity: number): Promise<AddPartResponseDto> {
-        if (quantity < 1) throw new BadRequestException('Quantidade deve ser >= 1');
+    async execute(osId: string, pecaId: string, quantidade: number): Promise<OrdemDeServico> {
+        const os = await this.osRepo.findById(osId);
+        if (!os) throw new NotFoundException(`Ordem de serviço ${osId} não encontrada`);
 
-        const order = await this.orderRepo.findById(serviceOrderId);
-        if (!order) throw new NotFoundException(`Ordem de serviço ${serviceOrderId} não encontrada`);
+        const peca = await this.pecaRepo.findById(pecaId);
+        if (!peca) throw new NotFoundException(`Peça ${pecaId} não encontrada`);
 
-        const part = await this.partRepo.findById(partId);
-        if (!part) throw new NotFoundException(`Peça ${partId} não encontrada`);
-
-        let updatedOrder: ServiceOrder;
+        let updated: OrdemDeServico;
         try {
-            updatedOrder = order.addPart({
+            updated = os.addPeca({
                 id: crypto.randomUUID(),
-                partId,
-                quantity,
-                price: part.price,
+                pecaId,
+                quantidade,
+                precoUnitario: peca.precoUnitario,
+                utilizada: false,
             });
         } catch (err: any) {
             throw new ConflictException(err.message);
         }
 
-        await this.orderRepo.addPart(serviceOrderId, partId, quantity, updatedOrder.totalPrice);
-        const result = await this.orderRepo.findById(serviceOrderId);
+        await this.reservarEstoqueUseCase.execute({
+            pecaId,
+            quantidade,
+            osId,
+            observacao: `Reserva automática para OS ${os.numero}`,
+        });
 
-        return {
-            order: result!,
-            stockAvailable: part.stockQty >= quantity,
-            stockQty: part.stockQty,
-        };
+        return this.osRepo.update(updated);
     }
 }

@@ -4,7 +4,7 @@ import { ORDEM_DE_SERVICO_REPOSITORY, IOrdemDeServicoRepository } from '../../do
 import { InvalidTransitionError, OrdemDeServico } from '../../domain/entities/service-orders.entity';
 
 @Injectable()
-export class DeliverOrderUseCase {
+export class IniciarExecucaoUseCase {
     constructor(
         @Inject(ORDEM_DE_SERVICO_REPOSITORY)
         private readonly repo: IOrdemDeServicoRepository,
@@ -16,7 +16,7 @@ export class DeliverOrderUseCase {
 
         let updated: OrdemDeServico;
         try {
-            updated = os.entregar();
+            updated = os.iniciarExecucao();
         } catch (err) {
             if (err instanceof InvalidTransitionError) throw new UnprocessableEntityException(err.message);
             throw err;

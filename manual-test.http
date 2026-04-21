@@ -1,0 +1,510 @@
+# ===========================================================================
+# Manual Test — Fluxo completo da Oficina
+# Compatible with VS Code REST Client extension (ms-dotnettools.vscode-restclient)
+#
+# HOW TO USE:
+#   1. Install "REST Client" extension in VS Code
+#   2. Start the app:  docker compose -f docker-compose.dev.yml up -d && yarn start:dev
+#   3. Run each request in order — copy IDs returned in responses into the
+#      @variables below before proceeding to the next section.
+# ===========================================================================
+
+@baseUrl = http://localhost:3000
+
+# ---------------------------------------------------------------------------
+# After each step, paste the returned `id` into the variable below
+# ---------------------------------------------------------------------------
+@token        = PASTE_ACCESS_TOKEN_HERE
+@clienteId    = PASTE_CLIENTE_ID_HERE
+@veiculoId    = PASTE_VEICULO_ID_HERE
+@servicoId    = PASTE_SERVICO_ID_HERE
+@pecaId       = PASTE_PECA_ID_HERE
+@osId         = PASTE_OS_ID_HERE
+@orcamentoId  = PASTE_ORCAMENTO_ID_HERE
+@osItemPecaId = PASTE_OS_ITEM_PECA_ID_HERE
+
+
+###############################################################################
+# 1. AUTH
+###############################################################################
+
+### 1a. Register
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "mecanico@oficina.com",
+  "password": "senha123"
+}
+
+# → 201  { "accessToken": "eyJ..." }
+# Copy accessToken → @token
+
+###
+
+### 1b. Login (use if you already registered)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "mecanico@oficina.com",
+  "password": "senha123"
+}
+
+# → 200  { "accessToken": "eyJ..." }
+
+
+###############################################################################
+# 2. CLIENTE
+###############################################################################
+
+### 2a. Criar cliente
+POST {{baseUrl}}/clientes
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "João da Silva",
+  "cpf": "12345678901",
+  "email": "joao@email.com",
+  "telefone": "11999990000"
+}
+
+# → 201  { "id": "...", "nome": "João da Silva", "ativo": true }
+# Copy id → @clienteId
+
+###
+
+### 2b. Listar clientes
+GET {{baseUrl}}/clientes
+Authorization: Bearer {{token}}
+
+###
+
+### 2c. Buscar cliente por ID
+GET {{baseUrl}}/clientes/{{clienteId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 2d. Atualizar cliente
+PUT {{baseUrl}}/clientes/{{clienteId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "telefone": "11988880000",
+  "endereco": "Rua das Flores, 100"
+}
+
+###
+
+### 2e. Desativar cliente
+PATCH {{baseUrl}}/clientes/{{clienteId}}/desativar
+Authorization: Bearer {{token}}
+
+
+###############################################################################
+# 3. VEÍCULO
+###############################################################################
+
+### 3a. Criar veículo
+POST {{baseUrl}}/veiculos
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "placa": "ABC1234",
+  "marca": "Fiat",
+  "modelo": "Uno",
+  "ano": 2018,
+  "cor": "Branco",
+  "kmAtual": 75000,
+  "clienteId": "{{clienteId}}"
+}
+
+# → 201  { "id": "...", "placa": "ABC1234" }
+# Copy id → @veiculoId
+
+###
+
+### 3b. Listar veículos
+GET {{baseUrl}}/veiculos
+Authorization: Bearer {{token}}
+
+###
+
+### 3c. Buscar veículo por ID
+GET {{baseUrl}}/veiculos/{{veiculoId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 3d. Atualizar veículo (km após revisão)
+PUT {{baseUrl}}/veiculos/{{veiculoId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "kmAtual": 76000
+}
+
+
+###############################################################################
+# 4. SERVIÇO
+###############################################################################
+
+### 4a. Criar serviço
+POST {{baseUrl}}/servicos
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "Alinhamento e Balanceamento",
+  "precoBase": 150.00,
+  "descricao": "Alinhamento das 4 rodas + balanceamento"
+}
+
+# → 201  { "id": "...", "nome": "Alinhamento e Balanceamento" }
+# Copy id → @servicoId
+
+###
+
+### 4b. Criar mais um serviço
+POST {{baseUrl}}/servicos
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "Troca de óleo",
+  "precoBase": 80.00
+}
+
+###
+
+### 4c. Listar serviços
+GET {{baseUrl}}/servicos
+Authorization: Bearer {{token}}
+
+
+###############################################################################
+# 5. PEÇA (com estoque)
+###############################################################################
+
+### 5a. Criar peça
+POST {{baseUrl}}/pecas
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nome": "Pastilha de freio dianteira",
+  "precoUnitario": 95.00,
+  "qtdTotal": 10,
+  "codigo": "PF-DIANT-001",
+  "descricao": "Par de pastilhas para eixo dianteiro"
+}
+
+# → 201  { "id": "...", "qtdTotal": 10, "qtdDisponivel": 10 }
+# Copy id → @pecaId
+
+###
+
+### 5b. Listar peças
+GET {{baseUrl}}/pecas
+Authorization: Bearer {{token}}
+
+###
+
+### 5c. Buscar peça por ID
+GET {{baseUrl}}/pecas/{{pecaId}}
+Authorization: Bearer {{token}}
+
+
+###############################################################################
+# 6. ESTOQUE — movimentações manuais
+###############################################################################
+
+### 6a. Entrada de estoque
+POST {{baseUrl}}/estoque/entrada
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "pecaId": "{{pecaId}}",
+  "quantidade": 5,
+  "observacao": "Reposição de fornecedor"
+}
+
+# → 201  { "tipo": "ENTRADA", "quantidade": 5 }
+# Após: qtdTotal = 15, qtdDisponivel = 15
+
+###
+
+### 6b. Ver movimentações da peça
+GET {{baseUrl}}/estoque/movimentacoes?pecaId={{pecaId}}
+Authorization: Bearer {{token}}
+
+
+###############################################################################
+# 7. ORDEM DE SERVIÇO — abrir
+###############################################################################
+
+### 7a. Abrir OS
+POST {{baseUrl}}/os
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "clienteId": "{{clienteId}}",
+  "veiculoId": "{{veiculoId}}",
+  "descricaoProblema": "Barulho ao frear e vibração no volante"
+}
+
+# → 201  { "id": "...", "numero": "OS-...", "status": "RECEBIDA" }
+# Copy id → @osId
+
+###
+
+### 7b. Listar todas as OSs
+GET {{baseUrl}}/os
+Authorization: Bearer {{token}}
+
+###
+
+### 7c. Filtrar por status
+GET {{baseUrl}}/os?status=RECEBIDA
+Authorization: Bearer {{token}}
+
+###
+
+### 7d. Buscar OS por ID
+GET {{baseUrl}}/os/{{osId}}
+Authorization: Bearer {{token}}
+
+
+###############################################################################
+# 8. ORDEM DE SERVIÇO — adicionar itens
+###############################################################################
+
+### 8a. Adicionar serviço à OS
+POST {{baseUrl}}/os/{{osId}}/servicos
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "servicoId": "{{servicoId}}"
+}
+
+# → 201  { ..., "servicos": [{ "precoUnitario": 150 }] }
+
+###
+
+### 8b. Adicionar peça à OS (reserva 2 unidades)
+POST {{baseUrl}}/os/{{osId}}/pecas
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "pecaId": "{{pecaId}}",
+  "quantidade": 2
+}
+
+# → 201  { ..., "pecas": [{ "quantidade": 2, "precoUnitario": 95 }] }
+# Após: qtdDisponivel -= 2, qtdReservada += 2
+
+###
+
+### 8c. Verificar estoque reservado
+GET {{baseUrl}}/pecas/{{pecaId}}
+Authorization: Bearer {{token}}
+
+# Esperado: qtdDisponivel = 13, qtdReservada = 2
+
+
+###############################################################################
+# 9. DIAGNÓSTICO
+###############################################################################
+
+### 9a. Iniciar diagnóstico (RECEBIDA → EM_DIAGNOSTICO)
+PATCH {{baseUrl}}/os/{{osId}}/iniciar-diagnostico
+Authorization: Bearer {{token}}
+
+# → 200  { "status": "EM_DIAGNOSTICO" }
+
+###
+
+### 9b. Tentar iniciar diagnóstico novamente (deve falhar)
+PATCH {{baseUrl}}/os/{{osId}}/iniciar-diagnostico
+Authorization: Bearer {{token}}
+
+# → 422  Transição inválida
+
+###
+
+### 9c. Concluir diagnóstico (EM_DIAGNOSTICO → AGUARDANDO_APROVACAO)
+#        Cria orçamento automaticamente com valor = serviços + peças
+PATCH {{baseUrl}}/os/{{osId}}/concluir-diagnostico
+Authorization: Bearer {{token}}
+
+# → 200  { "status": "AGUARDANDO_APROVACAO" }
+# Orçamento criado: 150 (serviço) + 95*2 (peças) = 340
+
+
+###############################################################################
+# 10. ORÇAMENTO
+###############################################################################
+
+### 10a. Buscar orçamento (obter orcamentoId)
+#  Primeiro: descubra o id do orçamento via DB ou response acima
+#  Por enquanto busque via GET /orcamentos se tiver listagem, ou use o Prisma Studio
+GET {{baseUrl}}/orcamentos/{{orcamentoId}}
+Authorization: Bearer {{token}}
+
+# → 200  { "status": "GERADO", "valorTotal": 340 }
+# Copy id → @orcamentoId
+
+###
+
+### 10b. Enviar orçamento ao cliente (GERADO → ENVIADO)
+POST {{baseUrl}}/orcamentos/{{orcamentoId}}/enviar
+Authorization: Bearer {{token}}
+
+# → 201  { "status": "ENVIADO" }
+
+###
+
+### 10c. Aprovar orçamento (ENVIADO → APROVADO; OS → APROVADA)
+PATCH {{baseUrl}}/orcamentos/{{orcamentoId}}/aprovar
+Authorization: Bearer {{token}}
+
+# → 200  { "status": "APROVADO" }
+
+
+###############################################################################
+# 11. EXECUÇÃO
+###############################################################################
+
+### 11a. Iniciar execução (APROVADA → EM_EXECUCAO)
+PATCH {{baseUrl}}/os/{{osId}}/iniciar-execucao
+Authorization: Bearer {{token}}
+
+# → 200  { "status": "EM_EXECUCAO" }
+
+###
+
+### 11b. Buscar OS para pegar o ID do item de peça
+GET {{baseUrl}}/os/{{osId}}
+Authorization: Bearer {{token}}
+
+# Look at:  pecas[0].id  → copy to @osItemPecaId
+
+###
+
+### 11c. Marcar peça como utilizada (baixa estoque)
+PATCH {{baseUrl}}/os/{{osId}}/pecas/{{osItemPecaId}}/utilizar
+Authorization: Bearer {{token}}
+
+# → 200  { ..., "pecas": [{ "utilizada": true }] }
+# Após: qtdTotal -= 2, qtdReservada = 0, qtdDisponivel unchanged
+
+###
+
+### 11d. Verificar estoque após utilização
+GET {{baseUrl}}/pecas/{{pecaId}}
+Authorization: Bearer {{token}}
+
+# Esperado: qtdTotal = 13, qtdReservada = 0
+
+###
+
+### 11e. Finalizar execução (EM_EXECUCAO → FINALIZADA)
+PATCH {{baseUrl}}/os/{{osId}}/finalizar-execucao
+Authorization: Bearer {{token}}
+
+# → 200  { "status": "FINALIZADA", "dataFechamento": "..." }
+
+###
+
+### 11f. Entregar veículo (FINALIZADA → ENTREGUE)
+PATCH {{baseUrl}}/os/{{osId}}/entregar
+Authorization: Bearer {{token}}
+
+# → 200  { "status": "ENTREGUE" }
+
+
+###############################################################################
+# 12. FLUXO ALTERNATIVO — reprovar orçamento
+###############################################################################
+
+### 12a. Abrir nova OS
+POST {{baseUrl}}/os
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "clienteId": "{{clienteId}}",
+  "veiculoId": "{{veiculoId}}",
+  "descricaoProblema": "Revisão preventiva"
+}
+
+###
+
+### 12b–e. Adicionar itens, iniciar/concluir diagnóstico igual ao fluxo acima
+#           (repita os passos 8a, 8b, 9a, 9c com o novo osId)
+
+###
+
+### 12f. Reprovar orçamento (ENVIADO → REPROVADO; OS → REPROVADA; estoque liberado)
+PATCH {{baseUrl}}/orcamentos/{{orcamentoId}}/reprovar
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "observacoes": "Cliente achou muito caro, vai deixar para o mês que vem"
+}
+
+# → 200  { "status": "REPROVADO" }
+# Após: qtdReservada volta a 0, qtdDisponivel aumenta
+
+
+###############################################################################
+# 13. VALIDAÇÕES — respostas de erro esperadas
+###############################################################################
+
+### 13a. Criar cliente sem campos obrigatórios → 400
+POST {{baseUrl}}/clientes
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{}
+
+###
+
+### 13b. Criar OS com clienteId inválido (não UUID) → 400
+POST {{baseUrl}}/os
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "clienteId": "nao-e-um-uuid",
+  "veiculoId": "{{veiculoId}}"
+}
+
+###
+
+### 13c. Buscar OS inexistente → 404
+GET {{baseUrl}}/os/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{token}}
+
+###
+
+### 13d. Transição inválida de status → 422
+PATCH {{baseUrl}}/os/{{osId}}/iniciar-diagnostico
+Authorization: Bearer {{token}}
+
+# (OS já está em ENTREGUE — deve retornar 422)
+
+###
+
+### 13e. Acesso sem token → 401
+GET {{baseUrl}}/clientes

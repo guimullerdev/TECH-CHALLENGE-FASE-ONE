@@ -29,8 +29,9 @@ import { SendBudgetUseCase } from './application/use-cases/send-budget.usecase';
 import { ApproveBudgetUseCase } from './application/use-cases/approve-budget.usecase';
 import { RejectBudgetUseCase } from './application/use-cases/reject-budget.usecase';
 
-// GerarOrcamentoUseCase is needed for finish-diagnosis
+// GerarOrcamentoUseCase is needed for finish-diagnosis; GetOrcamentoUseCase for GET /os/:id/orcamento
 import { GerarOrcamentoUseCase } from '../orcamentos/application/use-cases/gerar-orcamento.usecase';
+import { GetOrcamentoUseCase } from '../orcamentos/application/use-cases/get-orcamento.usecase';
 import { ORCAMENTO_REPOSITORY } from '../orcamentos/domain/repositories/orcamento.repository.interface';
 import { OrcamentoPrismaRepository } from '../orcamentos/infrastructure/repositories/orcamento-prisma.repository';
 
@@ -58,6 +59,7 @@ import { OrcamentoPrismaRepository } from '../orcamentos/infrastructure/reposito
         ApproveBudgetUseCase,
         RejectBudgetUseCase,
         GerarOrcamentoUseCase,
+        GetOrcamentoUseCase,
         {
             provide: ORDEM_DE_SERVICO_REPOSITORY,
             useClass: OrdemDeServicoPrismaRepository,

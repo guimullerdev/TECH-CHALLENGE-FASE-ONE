@@ -26,6 +26,7 @@ import { UtilizarPecaUseCase } from '../application/use-cases/utilizar-peca.usec
 import { FinishOrderUseCase } from '../application/use-cases/finish-order.usecase';
 import { LiberarVeiculoUseCase } from '../application/use-cases/liberar-veiculo.usecase';
 import { DeliverOrderUseCase } from '../application/use-cases/deliver-order.usecase';
+import { GetOrcamentoUseCase } from '../../orcamentos/application/use-cases/get-orcamento.usecase';
 
 import { CreateOsDto } from '../application/dto/create-service-orders.dto';
 import { AddServicoDto } from '../application/dto/add-service-to-order.dto';
@@ -52,6 +53,7 @@ export class ServiceOrdersController {
         private readonly finishOrderUseCase: FinishOrderUseCase,
         private readonly liberarVeiculoUseCase: LiberarVeiculoUseCase,
         private readonly deliverOrderUseCase: DeliverOrderUseCase,
+        private readonly getOrcamentoUseCase: GetOrcamentoUseCase,
     ) {}
 
     @Post()
@@ -84,6 +86,15 @@ export class ServiceOrdersController {
     @ApiResponse({ status: 404, description: 'OS não encontrada' })
     findOne(@Param('id') id: string) {
         return this.getOsUseCase.execute(id);
+    }
+
+    @Get(':id/orcamento')
+    @ApiOperation({ summary: 'Buscar orçamento da OS' })
+    @ApiParam({ name: 'id', description: 'UUID da OS' })
+    @ApiResponse({ status: 200, description: 'Orçamento encontrado' })
+    @ApiResponse({ status: 404, description: 'Orçamento não encontrado para esta OS' })
+    getOrcamento(@Param('id') id: string) {
+        return this.getOrcamentoUseCase.executeByOsId(id);
     }
 
     @Post(':id/servicos')

@@ -14,6 +14,7 @@ import { UtilizarPecaUseCase } from '../application/use-cases/utilizar-peca.usec
 import { FinishOrderUseCase } from '../application/use-cases/finish-order.usecase';
 import { LiberarVeiculoUseCase } from '../application/use-cases/liberar-veiculo.usecase';
 import { DeliverOrderUseCase } from '../application/use-cases/deliver-order.usecase';
+import { GetOrcamentoUseCase } from '../../orcamentos/application/use-cases/get-orcamento.usecase';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 const uc = (val: any = { id: 'os-1' }) => ({ execute: jest.fn().mockResolvedValue(val), executeAll: jest.fn().mockResolvedValue([val]) });
@@ -34,6 +35,7 @@ describe('ServiceOrdersController', () => {
     let finishOrderUC: { execute: jest.Mock };
     let liberarVeiculoUC: { execute: jest.Mock };
     let deliverUC: { execute: jest.Mock };
+    let getOrcamentoUC: { execute: jest.Mock; executeByOsId: jest.Mock };
 
     beforeEach(async () => {
         createUC = { execute: jest.fn().mockResolvedValue({ id: 'os-1' }) };
@@ -50,6 +52,7 @@ describe('ServiceOrdersController', () => {
         finishOrderUC = { execute: jest.fn().mockResolvedValue({ id: 'os-1' }) };
         liberarVeiculoUC = { execute: jest.fn().mockResolvedValue({ id: 'os-1' }) };
         deliverUC = { execute: jest.fn().mockResolvedValue({ id: 'os-1' }) };
+        getOrcamentoUC = { execute: jest.fn().mockResolvedValue({ id: 'orc-1' }), executeByOsId: jest.fn().mockResolvedValue({ id: 'orc-1' }) };
 
         const module: TestingModule = await Test.createTestingModule({
             controllers: [ServiceOrdersController],
@@ -68,6 +71,7 @@ describe('ServiceOrdersController', () => {
                 { provide: FinishOrderUseCase, useValue: finishOrderUC },
                 { provide: LiberarVeiculoUseCase, useValue: liberarVeiculoUC },
                 { provide: DeliverOrderUseCase, useValue: deliverUC },
+                { provide: GetOrcamentoUseCase, useValue: getOrcamentoUC },
             ],
         })
             .overrideGuard(JwtAuthGuard)
@@ -151,5 +155,10 @@ describe('ServiceOrdersController', () => {
     it('entregar delegates to DeliverOrderUseCase', async () => {
         await controller.entregar('os-1');
         expect(deliverUC.execute).toHaveBeenCalledWith('os-1');
+    });
+
+    it('getOrcamento delegates to GetOrcamentoUseCase.executeByOsId', async () => {
+        await controller.getOrcamento('os-1');
+        expect(getOrcamentoUC.executeByOsId).toHaveBeenCalledWith('os-1');
     });
 });

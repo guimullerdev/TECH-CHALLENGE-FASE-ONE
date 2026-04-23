@@ -5,6 +5,7 @@ import { BaixaEstoqueUseCase } from '../application/use-cases/baixa-estoque.usec
 import { ReservarEstoqueUseCase } from '../application/use-cases/reservar-estoque.usecase';
 import { LiberarReservaUseCase } from '../application/use-cases/liberar-reserva.usecase';
 import { ListarMovimentacoesUseCase } from '../application/use-cases/listar-movimentacoes.usecase';
+import { SolicitarReposicaoUseCase } from '../application/use-cases/solicitar-reposicao.usecase';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 const uc = () => ({ execute: jest.fn().mockResolvedValue({}) });
@@ -16,6 +17,7 @@ describe('EstoqueController', () => {
     let reservarUC: { execute: jest.Mock };
     let liberarUC: { execute: jest.Mock };
     let listarUC: { execute: jest.Mock };
+    let solicitarReposicaoUC: { execute: jest.Mock };
 
     beforeEach(async () => {
         entradaUC = uc();
@@ -23,6 +25,7 @@ describe('EstoqueController', () => {
         reservarUC = uc();
         liberarUC = uc();
         listarUC = { execute: jest.fn().mockResolvedValue([]) };
+        solicitarReposicaoUC = { execute: jest.fn().mockResolvedValue({ mensagem: 'Reposição solicitada' }) };
 
         const module: TestingModule = await Test.createTestingModule({
             controllers: [EstoqueController],
@@ -32,6 +35,7 @@ describe('EstoqueController', () => {
                 { provide: ReservarEstoqueUseCase, useValue: reservarUC },
                 { provide: LiberarReservaUseCase, useValue: liberarUC },
                 { provide: ListarMovimentacoesUseCase, useValue: listarUC },
+                { provide: SolicitarReposicaoUseCase, useValue: solicitarReposicaoUC },
             ],
         })
             .overrideGuard(JwtAuthGuard)
@@ -68,5 +72,11 @@ describe('EstoqueController', () => {
     it('movimentacoes delegates to ListarMovimentacoesUseCase', async () => {
         await controller.movimentacoes('p-1');
         expect(listarUC.execute).toHaveBeenCalledWith('p-1');
+    });
+
+    it('solicitarReposicao delegates to SolicitarReposicaoUseCase', async () => {
+        const dto = { pecaId: 'p-1' };
+        await controller.solicitarReposicao(dto as any);
+        expect(solicitarReposicaoUC.execute).toHaveBeenCalledWith(dto);
     });
 });

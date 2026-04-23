@@ -6,11 +6,13 @@ import { BaixaEstoqueUseCase } from '../application/use-cases/baixa-estoque.usec
 import { ReservarEstoqueUseCase } from '../application/use-cases/reservar-estoque.usecase';
 import { LiberarReservaUseCase } from '../application/use-cases/liberar-reserva.usecase';
 import { ListarMovimentacoesUseCase } from '../application/use-cases/listar-movimentacoes.usecase';
+import { SolicitarReposicaoUseCase } from '../application/use-cases/solicitar-reposicao.usecase';
 
 import { EntradaEstoqueDto } from '../application/dto/entrada-estoque.dto';
 import { BaixaEstoqueDto } from '../application/dto/baixa-estoque.dto';
 import { ReservarEstoqueDto } from '../application/dto/reservar-estoque.dto';
 import { LiberarReservaDto } from '../application/dto/liberar-reserva.dto';
+import { SolicitarReposicaoDto } from '../application/dto/solicitar-reposicao.dto';
 
 @ApiTags('estoque')
 @ApiBearerAuth()
@@ -22,6 +24,7 @@ export class EstoqueController {
         private readonly reservarEstoqueUseCase: ReservarEstoqueUseCase,
         private readonly liberarReservaUseCase: LiberarReservaUseCase,
         private readonly listarMovimentacoesUseCase: ListarMovimentacoesUseCase,
+        private readonly solicitarReposicaoUseCase: SolicitarReposicaoUseCase,
     ) {}
 
     @Post('entrada')
@@ -60,6 +63,16 @@ export class EstoqueController {
     @ApiResponse({ status: 404, description: 'Peça não encontrada' })
     liberarReserva(@Body() dto: LiberarReservaDto) {
         return this.liberarReservaUseCase.execute(dto);
+    }
+
+    @Post('solicitar-reposicao')
+    @HttpCode(HttpStatus.CREATED)
+    @ApiOperation({ summary: 'Solicitar reposição de estoque (apenas quando qtd_total = 0)' })
+    @ApiResponse({ status: 201, description: 'Reposição solicitada com sucesso' })
+    @ApiResponse({ status: 404, description: 'Peça não encontrada' })
+    @ApiResponse({ status: 422, description: 'Peça ainda possui estoque disponível' })
+    solicitarReposicao(@Body() dto: SolicitarReposicaoDto) {
+        return this.solicitarReposicaoUseCase.execute(dto);
     }
 
     @Get('movimentacoes')

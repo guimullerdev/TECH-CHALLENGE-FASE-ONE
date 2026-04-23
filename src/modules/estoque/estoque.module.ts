@@ -10,6 +10,7 @@ import { BaixaEstoqueUseCase } from './application/use-cases/baixa-estoque.useca
 import { ReservarEstoqueUseCase } from './application/use-cases/reservar-estoque.usecase';
 import { LiberarReservaUseCase } from './application/use-cases/liberar-reserva.usecase';
 import { ListarMovimentacoesUseCase } from './application/use-cases/listar-movimentacoes.usecase';
+import { SolicitarReposicaoUseCase } from './application/use-cases/solicitar-reposicao.usecase';
 
 @Module({
     imports: [PrismaModule, PartsModule],
@@ -20,6 +21,7 @@ import { ListarMovimentacoesUseCase } from './application/use-cases/listar-movim
         ReservarEstoqueUseCase,
         LiberarReservaUseCase,
         ListarMovimentacoesUseCase,
+        SolicitarReposicaoUseCase,
         {
             provide: MOVIMENTACAO_ESTOQUE_REPOSITORY,
             useClass: MovimentacaoEstoquePrismaRepository,

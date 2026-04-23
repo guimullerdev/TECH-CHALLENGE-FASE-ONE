@@ -4,6 +4,7 @@ import { ReservarEstoqueUseCase } from './reservar-estoque.usecase';
 import { LiberarReservaUseCase } from './liberar-reserva.usecase';
 import { BaixaEstoqueUseCase } from './baixa-estoque.usecase';
 import { ListarMovimentacoesUseCase } from './listar-movimentacoes.usecase';
+import { SolicitarReposicaoUseCase } from './solicitar-reposicao.usecase';
 import { Peca } from '../../../parts/domain/entities/parts.entity';
 import { MovimentacaoEstoque, TipoMovimentacao } from '../../domain/entities/movimentacao-estoque.entity';
 import type { IMovimentacaoEstoqueRepository } from '../../domain/repositories/movimentacao-estoque.repository.interface';
@@ -194,5 +195,47 @@ describe('ListarMovimentacoesUseCase', () => {
 
         expect(repo.findByPecaId).toHaveBeenCalledWith('p-1');
         expect(result).toHaveLength(1);
+    });
+});
+
+// ─── SolicitarReposicaoUseCase ───────────────────────────────────────────────
+describe('SolicitarReposicaoUseCase', () => {
+    it('returns restock response when qtdTotal is zero', async () => {
+        const pecaRepo = mockPecaRepo();
+        pecaRepo.findById.mockResolvedValue(makePeca(0, 0, 0));
+
+        const useCase = new SolicitarReposicaoUseCase(pecaRepo as any);
+        const result = await useCase.execute({ pecaId: 'p-1' });
+
+        expect(result.pecaId).toBe('p-1');
+        expect(result.qtdTotal).toBe(0);
+        expect(result.mensagem).toContain('Reposição de estoque solicitada');
+        expect(result.solicitadoEm).toBeInstanceOf(Date);
+    });
+
+    it('includes observacao in response when provided', async () => {
+        const pecaRepo = mockPecaRepo();
+        pecaRepo.findById.mockResolvedValue(makePeca(0, 0, 0));
+
+        const useCase = new SolicitarReposicaoUseCase(pecaRepo as any);
+        const result = await useCase.execute({ pecaId: 'p-1', observacao: 'Urgente' });
+
+        expect(result.observacao).toBe('Urgente');
+    });
+
+    it('throws NotFoundException when peca not found', async () => {
+        const pecaRepo = mockPecaRepo();
+        pecaRepo.findById.mockResolvedValue(null);
+
+        const useCase = new SolicitarReposicaoUseCase(pecaRepo as any);
+        await expect(useCase.execute({ pecaId: 'missing' })).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws UnprocessableEntityException when qtdTotal > 0', async () => {
+        const pecaRepo = mockPecaRepo();
+        pecaRepo.findById.mockResolvedValue(makePeca(5, 5, 0));
+
+        const useCase = new SolicitarReposicaoUseCase(pecaRepo as any);
+        await expect(useCase.execute({ pecaId: 'p-1' })).rejects.toThrow(UnprocessableEntityException);
     });
 });

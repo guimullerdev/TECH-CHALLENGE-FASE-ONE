@@ -33,6 +33,8 @@ import { AddServicoDto } from '../application/dto/add-service-to-order.dto';
 import { AddPecaDto } from '../application/dto/add-part-to-order.dto';
 import { RealizarServicoDto } from '../application/dto/realizar-servico.dto';
 import { StatusOS } from '../domain/entities/service-orders.entity';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { UserRole } from '../../auth/domain/enums/user-role.enum';
 
 @ApiTags('os')
 @ApiBearerAuth()
@@ -170,7 +172,8 @@ export class ServiceOrdersController {
     }
 
     @Patch(':id/servicos/:itemId/realizar')
-    @ApiOperation({ summary: 'Registrar execução de serviço' })
+    @Roles(UserRole.MECANICO, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Registrar execução de serviço (MECANICO ou ADMIN)' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })
     @ApiParam({ name: 'itemId', description: 'ID do item de serviço' })
     @ApiResponse({ status: 200, description: 'Execução registrada' })
@@ -183,7 +186,8 @@ export class ServiceOrdersController {
     }
 
     @Patch(':id/pecas/:itemId/utilizar')
-    @ApiOperation({ summary: 'Marcar peça como utilizada e registrar baixa' })
+    @Roles(UserRole.MECANICO, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Marcar peça como utilizada e registrar baixa (MECANICO ou ADMIN)' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })
     @ApiParam({ name: 'itemId', description: 'ID do item de peça' })
     @ApiResponse({ status: 200, description: 'Peça marcada como utilizada; baixa registrada' })

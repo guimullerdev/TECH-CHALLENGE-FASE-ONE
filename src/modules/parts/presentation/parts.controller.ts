@@ -1,6 +1,9 @@
 import { Controller, Post, Get, Put, Patch, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { UserRole } from '../../auth/domain/enums/user-role.enum';
+
 import { CreatePecaUseCase } from '../application/use-cases/create-parts.usecase';
 import { GetPecaUseCase } from '../application/use-cases/get-parts.usecase';
 import { UpdatePecaUseCase } from '../application/use-cases/update-parts.usecase';
@@ -64,18 +67,22 @@ export class PartsController {
     }
 
     @Patch(':id/desativar')
-    @ApiOperation({ summary: 'Desativar peça' })
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Desativar peça (somente ADMIN)' })
     @ApiParam({ name: 'id', description: 'UUID da peça' })
     @ApiResponse({ status: 200, description: 'Peça desativada' })
+    @ApiResponse({ status: 403, description: 'Acesso negado' })
     @ApiResponse({ status: 404, description: 'Peça não encontrada' })
     deactivate(@Param('id') id: string) {
         return this.deactivatePecaUseCase.execute(id);
     }
 
     @Patch(':id/reativar')
-    @ApiOperation({ summary: 'Reativar peça' })
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Reativar peça (somente ADMIN)' })
     @ApiParam({ name: 'id', description: 'UUID da peça' })
     @ApiResponse({ status: 200, description: 'Peça reativada' })
+    @ApiResponse({ status: 403, description: 'Acesso negado' })
     @ApiResponse({ status: 404, description: 'Peça não encontrada' })
     reactivate(@Param('id') id: string) {
         return this.reactivatePecaUseCase.execute(id);

@@ -1,6 +1,9 @@
 import { Controller, Post, Get, Put, Patch, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { UserRole } from '../../auth/domain/enums/user-role.enum';
+
 import { CreateServicoUseCase } from '../application/use-cases/create-services.use-case';
 import { GetServicoUseCase } from '../application/use-cases/get-services.use-case';
 import { UpdateServicoUseCase } from '../application/use-cases/update-services.use-case';
@@ -58,18 +61,22 @@ export class ServicesController {
     }
 
     @Patch(':id/desativar')
-    @ApiOperation({ summary: 'Desativar serviço' })
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Desativar serviço (somente ADMIN)' })
     @ApiParam({ name: 'id', description: 'UUID do serviço' })
     @ApiResponse({ status: 200, description: 'Serviço desativado' })
+    @ApiResponse({ status: 403, description: 'Acesso negado' })
     @ApiResponse({ status: 404, description: 'Serviço não encontrado' })
     deactivate(@Param('id') id: string) {
         return this.deactivateServicoUseCase.execute(id);
     }
 
     @Patch(':id/reativar')
-    @ApiOperation({ summary: 'Reativar serviço' })
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Reativar serviço (somente ADMIN)' })
     @ApiParam({ name: 'id', description: 'UUID do serviço' })
     @ApiResponse({ status: 200, description: 'Serviço reativado' })
+    @ApiResponse({ status: 403, description: 'Acesso negado' })
     @ApiResponse({ status: 404, description: 'Serviço não encontrado' })
     reactivate(@Param('id') id: string) {
         return this.reactivateServicoUseCase.execute(id);

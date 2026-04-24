@@ -211,10 +211,17 @@ model Orcamento {
 // Auth
 // ---------------------------------------------------------------------------
 
+enum UserRole {
+  ADMIN
+  ATENDENTE
+  MECANICO
+}
+
 model User {
   id               String   @id @default(uuid())
   email            String   @unique
   passwordHash     String
   refreshTokenHash String?
+  role             UserRole @default(ATENDENTE)
   createdAt        DateTime @default(now())
 }

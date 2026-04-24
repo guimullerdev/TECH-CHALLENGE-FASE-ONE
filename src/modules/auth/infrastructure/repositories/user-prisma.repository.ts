@@ -26,6 +26,7 @@ export class UserPrismaRepository implements UserRepository {
                 email: user.email,
                 passwordHash: user.passwordHash,
                 refreshTokenHash: user.refreshTokenHash,
+                role: user.role,
                 createdAt: user.createdAt,
             },
         });

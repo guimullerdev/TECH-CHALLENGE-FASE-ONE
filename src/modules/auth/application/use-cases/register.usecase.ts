@@ -20,7 +20,7 @@ export class RegisterUseCase {
         if (existing) throw new ConflictException('Email já cadastrado');
 
         const passwordHash = await bcrypt.hash(dto.password, 10);
-        const user = User.create({ email: dto.email, passwordHash });
+        const user = User.create({ email: dto.email, passwordHash, role: dto.role });
 
         const savedUser = await this.repo.create(user);
 

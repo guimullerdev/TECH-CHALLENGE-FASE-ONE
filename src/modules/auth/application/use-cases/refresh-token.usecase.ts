@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { AuthResponseDto } from '../dto/auth-response.dto';
+import { UserRole } from '../../domain/enums/user-role.enum';
 import type { UserRepository } from '../../domain/repositories/user.repository.interface';
 
 @Injectable()
@@ -30,15 +31,15 @@ export class RefreshTokenUseCase {
         const tokenMatch = await bcrypt.compare(dto.refreshToken, user.refreshTokenHash);
         if (!tokenMatch) throw new UnauthorizedException('Refresh token inválido');
 
-        const tokens = await this.generateTokens(user.id, user.email);
+        const tokens = await this.generateTokens(user.id, user.email, user.role);
         const refreshHash = await bcrypt.hash(tokens.refreshToken, 10);
         await this.repo.updateRefreshToken(user.id, refreshHash);
 
         return tokens;
     }
 
-    private async generateTokens(userId: string, email: string): Promise<AuthResponseDto> {
-        const payload = { sub: userId, email };
+    private async generateTokens(userId: string, email: string, role: UserRole): Promise<AuthResponseDto> {
+        const payload = { sub: userId, email, role };
         const [accessToken, refreshToken] = await Promise.all([
             this.jwtService.signAsync(payload, {
                 secret: process.env.JWT_SECRET,

@@ -26,6 +26,7 @@ export class AddServicoToOsUseCase {
                 id: crypto.randomUUID(),
                 servicoId,
                 precoUnitario: servico.precoBase,
+                status: 'pendente',
             });
         } catch (err: any) {
             throw new ConflictException(err.message);

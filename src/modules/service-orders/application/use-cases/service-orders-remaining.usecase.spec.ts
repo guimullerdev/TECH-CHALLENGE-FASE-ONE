@@ -59,6 +59,7 @@ const makeOs = (status = StatusOS.RECEBIDA, extra: Partial<Parameters<typeof Ord
         status,
         servicos: [],
         pecas: [],
+        historicoStatus: [],
         dataAbertura: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -139,7 +140,7 @@ describe('AddServicoToOsUseCase', () => {
         const osRepo = mockOsRepo();
         const servicoRepo = mockServicoRepo();
         const os = makeOs(StatusOS.RECEBIDA, {
-            servicos: [{ id: 'item-1', servicoId: 's-1', precoUnitario: 80 }],
+            servicos: [{ id: 'item-1', servicoId: 's-1', precoUnitario: 80, status: 'pendente' as const }],
         });
         osRepo.findById.mockResolvedValue(os);
         servicoRepo.findById.mockResolvedValue(makeServico());
@@ -193,7 +194,7 @@ describe('RemoveServicoFromOsUseCase', () => {
     it('removes servico from OS', async () => {
         const osRepo = mockOsRepo();
         const os = makeOs(StatusOS.RECEBIDA, {
-            servicos: [{ id: 'item-1', servicoId: 's-1', precoUnitario: 80 }],
+            servicos: [{ id: 'item-1', servicoId: 's-1', precoUnitario: 80, status: 'pendente' as const }],
         });
         osRepo.findById.mockResolvedValue(os);
         osRepo.update.mockImplementation(async (o) => o);
@@ -227,7 +228,7 @@ describe('RemovePecaFromOsUseCase', () => {
         const osRepo = mockOsRepo();
         const liberar = { execute: jest.fn().mockResolvedValue({}) } as unknown as LiberarReservaUseCase;
         const os = makeOs(StatusOS.RECEBIDA, {
-            pecas: [{ id: 'item-1', pecaId: 'p-1', quantidade: 2, precoUnitario: 25, utilizada: false }],
+            pecas: [{ id: 'item-1', pecaId: 'p-1', quantidade: 2, valorUnitario: 25, status: 'reservada' as const }],
         });
         osRepo.findById.mockResolvedValue(os);
         osRepo.update.mockImplementation(async (o) => o);
@@ -414,7 +415,7 @@ describe('RealizarServicoUseCase', () => {
     it('registers execution of a service item', async () => {
         const repo = mockOsRepo();
         const os = makeOs(StatusOS.EM_EXECUCAO, {
-            servicos: [{ id: 'item-s-1', servicoId: 's-1', precoUnitario: 80 }],
+            servicos: [{ id: 'item-s-1', servicoId: 's-1', precoUnitario: 80, status: 'pendente' as const }],
         });
         repo.findById.mockResolvedValue(os);
         repo.update.mockImplementation(async (o) => o);
@@ -443,7 +444,7 @@ describe('UtilizarPecaUseCase', () => {
         const repo = mockOsRepo();
         const baixa = { execute: jest.fn().mockResolvedValue({}) } as unknown as BaixaEstoqueUseCase;
         const os = makeOs(StatusOS.EM_EXECUCAO, {
-            pecas: [{ id: 'item-p-1', pecaId: 'p-1', quantidade: 1, precoUnitario: 25, utilizada: false }],
+            pecas: [{ id: 'item-p-1', pecaId: 'p-1', quantidade: 1, valorUnitario: 25, status: 'reservada' as const }],
         });
         repo.findById.mockResolvedValue(os);
         repo.update.mockImplementation(async (o) => o);

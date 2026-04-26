@@ -28,8 +28,8 @@ export class AddPecaToOsUseCase {
                 id: crypto.randomUUID(),
                 pecaId,
                 quantidade,
-                precoUnitario: peca.precoUnitario,
-                utilizada: false,
+                valorUnitario: peca.precoUnitario,
+                status: 'reservada',
             });
         } catch (err: any) {
             throw new ConflictException(err.message);

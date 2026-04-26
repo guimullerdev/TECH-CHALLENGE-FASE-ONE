@@ -1,9 +1,12 @@
 import { Prisma, StatusOS } from '@prisma/client';
 import {
     OrdemDeServico,
+    OrdemDeServicoProps,
     OsItemServico,
     OsItemPeca,
 } from '../../domain/entities/service-orders.entity';
+import { HistoricoStatusOS } from '../../domain/entities/historico-status-os.entity';
+import { StatusOS as DomainStatusOS } from '../../domain/entities/service-orders.entity';
 
 type PrismaOSFull = {
     id: string;
@@ -38,6 +41,7 @@ export class ServiceOrderMapper {
             id: s.id,
             servicoId: s.servicoId,
             precoUnitario: Number(s.precoUnitario),
+            status: (s.inicioExec && s.fimExec) ? 'realizado' : 'pendente',
             inicioExec: s.inicioExec ?? undefined,
             fimExec: s.fimExec ?? undefined,
         }));
@@ -46,8 +50,8 @@ export class ServiceOrderMapper {
             id: p.id,
             pecaId: p.pecaId,
             quantidade: p.quantidade,
-            precoUnitario: Number(p.precoUnitario),
-            utilizada: p.utilizada,
+            valorUnitario: Number(p.precoUnitario),
+            status: p.utilizada ? 'utilizada' : 'reservada',
         }));
 
         return OrdemDeServico.restore({
@@ -55,10 +59,11 @@ export class ServiceOrderMapper {
             numero: raw.numero,
             clienteId: raw.clienteId,
             veiculoId: raw.veiculoId,
-            status: raw.status as any,
+            status: raw.status as unknown as DomainStatusOS,
             descricaoProblema: raw.descricaoProblema ?? undefined,
             servicos,
             pecas,
+            historicoStatus: [],
             dataAbertura: raw.dataAbertura,
             dataFechamento: raw.dataFechamento ?? undefined,
             createdAt: raw.createdAt,

@@ -62,8 +62,8 @@ describe('ServiceOrderMapper', () => {
             expect(os.pecas).toHaveLength(1);
             expect(os.pecas[0].pecaId).toBe('peca-1');
             expect(os.pecas[0].quantidade).toBe(3);
-            expect(os.pecas[0].precoUnitario).toBe(50);
-            expect(os.pecas[0].utilizada).toBe(false);
+            expect(os.pecas[0].valorUnitario).toBe(50);
+            expect(os.pecas[0].status).toBe('reservada');
         });
 
         it('uses empty arrays when items are undefined', () => {

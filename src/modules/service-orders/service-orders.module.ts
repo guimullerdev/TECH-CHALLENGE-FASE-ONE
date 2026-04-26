@@ -30,6 +30,8 @@ import { ApproveBudgetUseCase } from './application/use-cases/approve-budget.use
 import { RejectBudgetUseCase } from './application/use-cases/reject-budget.usecase';
 
 // GerarOrcamentoUseCase is needed for finish-diagnosis; GetOrcamentoUseCase for GET /os/:id/orcamento
+import { GetOsAcompanhamentoUseCase } from './application/use-cases/get-os-acompanhamento.usecase';
+import { GetTempoMedioOsUseCase } from './application/use-cases/get-tempo-medio-os.usecase';
 import { GerarOrcamentoUseCase } from '../orcamentos/application/use-cases/gerar-orcamento.usecase';
 import { GetOrcamentoUseCase } from '../orcamentos/application/use-cases/get-orcamento.usecase';
 import { ORCAMENTO_REPOSITORY } from '../orcamentos/domain/repositories/orcamento.repository.interface';
@@ -58,6 +60,8 @@ import { OrcamentoPrismaRepository } from '../orcamentos/infrastructure/reposito
         SendBudgetUseCase,
         ApproveBudgetUseCase,
         RejectBudgetUseCase,
+        GetOsAcompanhamentoUseCase,
+        GetTempoMedioOsUseCase,
         GerarOrcamentoUseCase,
         GetOrcamentoUseCase,
         {

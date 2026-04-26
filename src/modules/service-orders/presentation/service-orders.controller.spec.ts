@@ -15,6 +15,8 @@ import { FinishOrderUseCase } from '../application/use-cases/finish-order.usecas
 import { LiberarVeiculoUseCase } from '../application/use-cases/liberar-veiculo.usecase';
 import { DeliverOrderUseCase } from '../application/use-cases/deliver-order.usecase';
 import { GetOrcamentoUseCase } from '../../orcamentos/application/use-cases/get-orcamento.usecase';
+import { GetOsAcompanhamentoUseCase } from '../application/use-cases/get-os-acompanhamento.usecase';
+import { GetTempoMedioOsUseCase } from '../application/use-cases/get-tempo-medio-os.usecase';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 const uc = (val: any = { id: 'os-1' }) => ({ execute: jest.fn().mockResolvedValue(val), executeAll: jest.fn().mockResolvedValue([val]) });
@@ -36,6 +38,8 @@ describe('ServiceOrdersController', () => {
     let liberarVeiculoUC: { execute: jest.Mock };
     let deliverUC: { execute: jest.Mock };
     let getOrcamentoUC: { execute: jest.Mock; executeByOsId: jest.Mock };
+    let getAcompanhamentoUC: { execute: jest.Mock };
+    let getTempoMedioUC: { execute: jest.Mock };
 
     beforeEach(async () => {
         createUC = { execute: jest.fn().mockResolvedValue({ id: 'os-1' }) };
@@ -53,6 +57,8 @@ describe('ServiceOrdersController', () => {
         liberarVeiculoUC = { execute: jest.fn().mockResolvedValue({ id: 'os-1' }) };
         deliverUC = { execute: jest.fn().mockResolvedValue({ id: 'os-1' }) };
         getOrcamentoUC = { execute: jest.fn().mockResolvedValue({ id: 'orc-1' }), executeByOsId: jest.fn().mockResolvedValue({ id: 'orc-1' }) };
+        getAcompanhamentoUC = { execute: jest.fn().mockResolvedValue({ id: 'os-1', statusAtual: 'RECEBIDA' }) };
+        getTempoMedioUC = { execute: jest.fn().mockResolvedValue({ totalOsConsideradas: 0, tempoMedioEmHoras: 0 }) };
 
         const module: TestingModule = await Test.createTestingModule({
             controllers: [ServiceOrdersController],
@@ -72,6 +78,8 @@ describe('ServiceOrdersController', () => {
                 { provide: LiberarVeiculoUseCase, useValue: liberarVeiculoUC },
                 { provide: DeliverOrderUseCase, useValue: deliverUC },
                 { provide: GetOrcamentoUseCase, useValue: getOrcamentoUC },
+                { provide: GetOsAcompanhamentoUseCase, useValue: getAcompanhamentoUC },
+                { provide: GetTempoMedioOsUseCase, useValue: getTempoMedioUC },
             ],
         })
             .overrideGuard(JwtAuthGuard)

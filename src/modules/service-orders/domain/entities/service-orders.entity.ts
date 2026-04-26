@@ -1,3 +1,5 @@
+import { HistoricoStatusOS } from './historico-status-os.entity';
+
 export enum StatusOS {
     RECEBIDA = 'RECEBIDA',
     EM_DIAGNOSTICO = 'EM_DIAGNOSTICO',
@@ -12,7 +14,9 @@ export enum StatusOS {
 export interface OsItemServico {
     id: string;
     servicoId: string;
+    descricao?: string;
     precoUnitario: number;
+    status: 'pendente' | 'realizado';
     inicioExec?: Date;
     fimExec?: Date;
 }
@@ -21,8 +25,8 @@ export interface OsItemPeca {
     id: string;
     pecaId: string;
     quantidade: number;
-    precoUnitario: number;
-    utilizada: boolean;
+    valorUnitario: number;
+    status: 'reservada' | 'utilizada';
 }
 
 export interface OrdemDeServicoProps {
@@ -30,10 +34,12 @@ export interface OrdemDeServicoProps {
     numero: string;
     clienteId: string;
     veiculoId: string;
+    orcamentoId?: string;
     status: StatusOS;
     descricaoProblema?: string;
     servicos: OsItemServico[];
     pecas: OsItemPeca[];
+    historicoStatus: HistoricoStatusOS[];
     dataAbertura: Date;
     dataFechamento?: Date;
     createdAt: Date;
@@ -47,10 +53,12 @@ export class OrdemDeServico {
     get numero() { return this.props.numero; }
     get clienteId() { return this.props.clienteId; }
     get veiculoId() { return this.props.veiculoId; }
+    get orcamentoId() { return this.props.orcamentoId; }
     get status() { return this.props.status; }
     get descricaoProblema() { return this.props.descricaoProblema; }
     get servicos() { return this.props.servicos; }
     get pecas() { return this.props.pecas; }
+    get historicoStatus() { return this.props.historicoStatus; }
     get dataAbertura() { return this.props.dataAbertura; }
     get dataFechamento() { return this.props.dataFechamento; }
     get createdAt() { return this.props.createdAt; }
@@ -66,6 +74,8 @@ export class OrdemDeServico {
         if (!props.veiculoId) throw new Error('veiculoId é obrigatório');
         if (!props.numero) throw new Error('numero é obrigatório');
 
+        const historico = HistoricoStatusOS.create({ statusAnterior: null, statusNovo: StatusOS.RECEBIDA });
+
         return new OrdemDeServico({
             id: crypto.randomUUID(),
             numero: props.numero,
@@ -75,6 +85,7 @@ export class OrdemDeServico {
             status: StatusOS.RECEBIDA,
             servicos: [],
             pecas: [],
+            historicoStatus: [historico],
             dataAbertura: new Date(),
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -93,13 +104,17 @@ export class OrdemDeServico {
         });
     }
 
+    vincularOrcamento(orcamentoId: string): OrdemDeServico {
+        return new OrdemDeServico({ ...this.props, orcamentoId, updatedAt: new Date() });
+    }
+
     addServico(item: OsItemServico): OrdemDeServico {
         if (this.props.servicos.some(s => s.servicoId === item.servicoId)) {
             throw new Error('Serviço já adicionado à OS');
         }
         return new OrdemDeServico({
             ...this.props,
-            servicos: [...this.props.servicos, item],
+            servicos: [...this.props.servicos, { ...item, status: 'pendente' }],
             updatedAt: new Date(),
         });
     }
@@ -122,7 +137,7 @@ export class OrdemDeServico {
         }
         return new OrdemDeServico({
             ...this.props,
-            pecas: [...this.props.pecas, item],
+            pecas: [...this.props.pecas, { ...item, status: 'reservada' }],
             updatedAt: new Date(),
         });
     }
@@ -140,15 +155,15 @@ export class OrdemDeServico {
 
     calcularTotal(): number {
         const totalServicos = this.props.servicos.reduce((sum, s) => sum + s.precoUnitario, 0);
-        const totalPecas = this.props.pecas.reduce((sum, p) => sum + p.precoUnitario * p.quantidade, 0);
-        return totalServicos + totalPecas;
+        const totalPecas = this.props.pecas.reduce((sum, p) => sum + p.valorUnitario * p.quantidade, 0);
+        return Math.round((totalServicos + totalPecas) * 100) / 100;
     }
 
     registrarExecucaoServico(itemId: string, inicio: Date, fim: Date): OrdemDeServico {
         const item = this.props.servicos.find(s => s.id === itemId);
         if (!item) throw new Error('Item de serviço não encontrado na OS');
         const updatedServicos = this.props.servicos.map(s =>
-            s.id === itemId ? { ...s, inicioExec: inicio, fimExec: fim } : s,
+            s.id === itemId ? { ...s, inicioExec: inicio, fimExec: fim, status: 'realizado' as const } : s,
         );
         return new OrdemDeServico({ ...this.props, servicos: updatedServicos, updatedAt: new Date() });
     }
@@ -157,9 +172,19 @@ export class OrdemDeServico {
         const item = this.props.pecas.find(p => p.id === itemId);
         if (!item) throw new Error('Item de peça não encontrado na OS');
         const updatedPecas = this.props.pecas.map(p =>
-            p.id === itemId ? { ...p, utilizada: true } : p,
+            p.id === itemId ? { ...p, status: 'utilizada' as const } : p,
         );
         return new OrdemDeServico({ ...this.props, pecas: updatedPecas, updatedAt: new Date() });
+    }
+
+    private transicionar(novoStatus: StatusOS): OrdemDeServico {
+        const historico = HistoricoStatusOS.create({ statusAnterior: this.props.status, statusNovo: novoStatus });
+        return new OrdemDeServico({
+            ...this.props,
+            status: novoStatus,
+            historicoStatus: [...this.props.historicoStatus, historico],
+            updatedAt: new Date(),
+        });
     }
 
     iniciarDiagnostico(): OrdemDeServico {
@@ -168,7 +193,7 @@ export class OrdemDeServico {
                 `Transição inválida: ${this.props.status} → EM_DIAGNOSTICO. Status esperado: RECEBIDA`,
             );
         }
-        return new OrdemDeServico({ ...this.props, status: StatusOS.EM_DIAGNOSTICO, updatedAt: new Date() });
+        return this.transicionar(StatusOS.EM_DIAGNOSTICO);
     }
 
     concluirDiagnostico(): OrdemDeServico {
@@ -177,7 +202,7 @@ export class OrdemDeServico {
                 `Transição inválida: ${this.props.status} → AGUARDANDO_APROVACAO. Status esperado: EM_DIAGNOSTICO`,
             );
         }
-        return new OrdemDeServico({ ...this.props, status: StatusOS.AGUARDANDO_APROVACAO, updatedAt: new Date() });
+        return this.transicionar(StatusOS.AGUARDANDO_APROVACAO);
     }
 
     aprovarOrcamento(): OrdemDeServico {
@@ -186,7 +211,7 @@ export class OrdemDeServico {
                 `Transição inválida: ${this.props.status} → APROVADA. Status esperado: AGUARDANDO_APROVACAO`,
             );
         }
-        return new OrdemDeServico({ ...this.props, status: StatusOS.APROVADA, updatedAt: new Date() });
+        return this.transicionar(StatusOS.APROVADA);
     }
 
     reprovarOrcamento(): OrdemDeServico {
@@ -195,7 +220,7 @@ export class OrdemDeServico {
                 `Transição inválida: ${this.props.status} → REPROVADA. Status esperado: AGUARDANDO_APROVACAO`,
             );
         }
-        return new OrdemDeServico({ ...this.props, status: StatusOS.REPROVADA, updatedAt: new Date() });
+        return this.transicionar(StatusOS.REPROVADA);
     }
 
     iniciarExecucao(): OrdemDeServico {
@@ -204,7 +229,7 @@ export class OrdemDeServico {
                 `Transição inválida: ${this.props.status} → EM_EXECUCAO. Status esperado: APROVADA`,
             );
         }
-        return new OrdemDeServico({ ...this.props, status: StatusOS.EM_EXECUCAO, updatedAt: new Date() });
+        return this.transicionar(StatusOS.EM_EXECUCAO);
     }
 
     finalizarExecucao(): OrdemDeServico {
@@ -214,10 +239,8 @@ export class OrdemDeServico {
             );
         }
         return new OrdemDeServico({
-            ...this.props,
-            status: StatusOS.FINALIZADA,
+            ...this.transicionar(StatusOS.FINALIZADA).props,
             dataFechamento: new Date(),
-            updatedAt: new Date(),
         });
     }
 
@@ -227,7 +250,7 @@ export class OrdemDeServico {
                 `Transição inválida: ${this.props.status} → ENTREGUE. Status esperado: FINALIZADA`,
             );
         }
-        return new OrdemDeServico({ ...this.props, status: StatusOS.ENTREGUE, updatedAt: new Date() });
+        return this.transicionar(StatusOS.ENTREGUE);
     }
 
     toJSON() {
@@ -236,10 +259,12 @@ export class OrdemDeServico {
             numero: this.props.numero,
             clienteId: this.props.clienteId,
             veiculoId: this.props.veiculoId,
+            orcamentoId: this.props.orcamentoId,
             status: this.props.status,
             descricaoProblema: this.props.descricaoProblema,
             servicos: this.props.servicos,
             pecas: this.props.pecas,
+            historicoStatus: this.props.historicoStatus,
             dataAbertura: this.props.dataAbertura,
             dataFechamento: this.props.dataFechamento,
             createdAt: this.props.createdAt,

@@ -78,8 +78,8 @@ export class OrdemDeServicoPrismaRepository implements IOrdemDeServicoRepository
                         osId: os.id,
                         pecaId: p.pecaId,
                         quantidade: p.quantidade,
-                        precoUnitario: new Prisma.Decimal(p.precoUnitario),
-                        utilizada: p.utilizada,
+                        precoUnitario: new Prisma.Decimal(p.valorUnitario),
+                        utilizada: p.status === 'utilizada',
                     })),
                 });
             }

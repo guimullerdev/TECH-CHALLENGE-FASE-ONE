@@ -27,6 +27,8 @@ import { FinishOrderUseCase } from '../application/use-cases/finish-order.usecas
 import { LiberarVeiculoUseCase } from '../application/use-cases/liberar-veiculo.usecase';
 import { DeliverOrderUseCase } from '../application/use-cases/deliver-order.usecase';
 import { GetOrcamentoUseCase } from '../../orcamentos/application/use-cases/get-orcamento.usecase';
+import { GetOsAcompanhamentoUseCase } from '../application/use-cases/get-os-acompanhamento.usecase';
+import { GetTempoMedioOsUseCase } from '../application/use-cases/get-tempo-medio-os.usecase';
 
 import { CreateOsDto } from '../application/dto/create-service-orders.dto';
 import { AddServicoDto } from '../application/dto/add-service-to-order.dto';
@@ -56,6 +58,8 @@ export class ServiceOrdersController {
         private readonly liberarVeiculoUseCase: LiberarVeiculoUseCase,
         private readonly deliverOrderUseCase: DeliverOrderUseCase,
         private readonly getOrcamentoUseCase: GetOrcamentoUseCase,
+        private readonly getAcompanhamentoUseCase: GetOsAcompanhamentoUseCase,
+        private readonly getTempoMedioUseCase: GetTempoMedioOsUseCase,
     ) {}
 
     @Post()
@@ -88,6 +92,30 @@ export class ServiceOrdersController {
     @ApiResponse({ status: 404, description: 'OS não encontrada' })
     findOne(@Param('id') id: string) {
         return this.getOsUseCase.execute(id);
+    }
+
+    @Get('metricas/tempo-medio')
+    @ApiOperation({ summary: 'Tempo médio de execução de OS finalizadas' })
+    @ApiQuery({ name: 'dataInicio', required: false, description: 'Filtro: data de abertura a partir de (ISO 8601)' })
+    @ApiQuery({ name: 'dataFim', required: false, description: 'Filtro: data de abertura até (ISO 8601)' })
+    @ApiResponse({ status: 200, description: 'Tempo médio calculado' })
+    getTempoMedio(
+        @Query('dataInicio') dataInicio?: string,
+        @Query('dataFim') dataFim?: string,
+    ) {
+        return this.getTempoMedioUseCase.execute({
+            dataInicio: dataInicio ? new Date(dataInicio) : undefined,
+            dataFim: dataFim ? new Date(dataFim) : undefined,
+        });
+    }
+
+    @Get(':id/acompanhamento')
+    @ApiOperation({ summary: 'Consultar acompanhamento público da OS pelo cliente' })
+    @ApiParam({ name: 'id', description: 'UUID da OS' })
+    @ApiResponse({ status: 200, description: 'Status atual e histórico de transições' })
+    @ApiResponse({ status: 404, description: 'OS não encontrada' })
+    getAcompanhamento(@Param('id') id: string) {
+        return this.getAcompanhamentoUseCase.execute(id);
     }
 
     @Get(':id/orcamento')

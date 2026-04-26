@@ -12,14 +12,15 @@ const servicoItem = (servicoId = 'svc-1', precoUnitario = 100) => ({
     id: 'item-s-1',
     servicoId,
     precoUnitario,
+    status: 'pendente' as const,
 });
 
-const pecaItem = (pecaId = 'peca-1', precoUnitario = 50, quantidade = 2) => ({
+const pecaItem = (pecaId = 'peca-1', valorUnitario = 50, quantidade = 2) => ({
     id: 'item-p-1',
     pecaId,
-    precoUnitario,
+    valorUnitario,
     quantidade,
-    utilizada: false,
+    status: 'reservada' as const,
 });
 
 describe('OrdemDeServico entity', () => {
@@ -30,6 +31,13 @@ describe('OrdemDeServico entity', () => {
             expect(os.servicos).toEqual([]);
             expect(os.pecas).toEqual([]);
             expect(os.numero).toBe('OS-001');
+        });
+
+        it('records RECEBIDA in historicoStatus on creation', () => {
+            const os = baseOS();
+            expect(os.historicoStatus).toHaveLength(1);
+            expect(os.historicoStatus[0].statusNovo).toBe(StatusOS.RECEBIDA);
+            expect(os.historicoStatus[0].statusAnterior).toBeNull();
         });
 
         it('throws when clienteId is missing', () => {
@@ -114,6 +122,13 @@ describe('OrdemDeServico entity', () => {
     describe('iniciarDiagnostico()', () => {
         it('transitions RECEBIDA → EM_DIAGNOSTICO', () => {
             expect(baseOS().iniciarDiagnostico().status).toBe(StatusOS.EM_DIAGNOSTICO);
+        });
+
+        it('records transition in historicoStatus', () => {
+            const os = baseOS().iniciarDiagnostico();
+            const last = os.historicoStatus[os.historicoStatus.length - 1];
+            expect(last.statusAnterior).toBe(StatusOS.RECEBIDA);
+            expect(last.statusNovo).toBe(StatusOS.EM_DIAGNOSTICO);
         });
 
         it('throws InvalidTransitionError when not RECEBIDA', () => {
@@ -212,18 +227,20 @@ describe('OrdemDeServico entity', () => {
                 StatusOS.FINALIZADA,
                 StatusOS.ENTREGUE,
             ]);
+            expect(os.historicoStatus).toHaveLength(7);
         });
     });
 
     describe('registrarExecucaoServico()', () => {
-        it('updates inicioExec and fimExec on an item', () => {
+        it('updates inicioExec, fimExec and status to realizado', () => {
             const inicio = new Date('2024-01-01T08:00:00');
             const fim = new Date('2024-01-01T10:00:00');
             const os = baseOS()
-                .addServico({ id: 'item-s-1', servicoId: 'svc-1', precoUnitario: 100 })
+                .addServico({ id: 'item-s-1', servicoId: 'svc-1', precoUnitario: 100, status: 'pendente' })
                 .registrarExecucaoServico('item-s-1', inicio, fim);
             expect(os.servicos[0].inicioExec).toEqual(inicio);
             expect(os.servicos[0].fimExec).toEqual(fim);
+            expect(os.servicos[0].status).toBe('realizado');
         });
 
         it('throws when item not found', () => {
@@ -232,15 +249,22 @@ describe('OrdemDeServico entity', () => {
     });
 
     describe('marcarPecaUtilizada()', () => {
-        it('sets utilizada to true', () => {
+        it('sets status to utilizada', () => {
             const os = baseOS()
-                .addPeca({ id: 'item-p-1', pecaId: 'peca-1', quantidade: 1, precoUnitario: 50, utilizada: false })
+                .addPeca({ id: 'item-p-1', pecaId: 'peca-1', quantidade: 1, valorUnitario: 50, status: 'reservada' })
                 .marcarPecaUtilizada('item-p-1');
-            expect(os.pecas[0].utilizada).toBe(true);
+            expect(os.pecas[0].status).toBe('utilizada');
         });
 
         it('throws when item not found', () => {
             expect(() => baseOS().marcarPecaUtilizada('nonexistent')).toThrow('não encontrado');
+        });
+    });
+
+    describe('vincularOrcamento()', () => {
+        it('sets orcamentoId', () => {
+            const os = baseOS().vincularOrcamento('orc-123');
+            expect(os.orcamentoId).toBe('orc-123');
         });
     });
 });

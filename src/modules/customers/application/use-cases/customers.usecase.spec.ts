@@ -37,10 +37,10 @@ describe('CreateClienteUseCase', () => {
         repo.create.mockImplementation(async (c) => c);
 
         const useCase = new CreateClienteUseCase(repo as any);
-        const result = await useCase.execute({ nome: 'João', cpf: '000.000.000-00' });
+        const result = await useCase.execute({ nome: 'João', cpf: '52998224725' });
 
         expect(repo.create).toHaveBeenCalledTimes(1);
-        expect(result.cpf).toBe('000.000.000-00');
+        expect(result.cpf).toBe('52998224725');
     });
 
     it('throws ConflictException if CPF already exists', async () => {

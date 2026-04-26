@@ -1,17 +1,29 @@
+import { AnoFabricacao } from '../value-objects/ano-fabricacao.vo';
+import { Placa } from '../value-objects/placa.vo';
+
 export class Veiculo {
+    private readonly _placa: Placa;
+    private readonly _ano: AnoFabricacao | undefined;
+
     private constructor(
         public readonly id: string,
-        public readonly placa: string,
+        placa: Placa,
         public readonly marca: string,
         public readonly modelo: string,
         public readonly clienteId: string,
-        public readonly ano: number | undefined,
+        ano: AnoFabricacao | undefined,
         public readonly cor: string | undefined,
         public readonly kmAtual: number | undefined,
         public readonly ativo: boolean,
         public readonly createdAt: Date,
         public readonly updatedAt: Date,
-    ) {}
+    ) {
+        this._placa = placa;
+        this._ano = ano;
+    }
+
+    get placa(): string { return this._placa.getValue(); }
+    get ano(): number | undefined { return this._ano?.getValue(); }
 
     static create(props: {
         placa: string;
@@ -22,16 +34,15 @@ export class Veiculo {
         cor?: string;
         kmAtual?: number;
     }): Veiculo {
-        if (props.ano !== undefined && (props.ano < 1886 || props.ano > new Date().getFullYear() + 1)) {
-            throw new Error('Ano do veículo inválido');
-        }
+        const placa = Placa.create(props.placa);
+        const ano = props.ano !== undefined ? AnoFabricacao.create(props.ano) : undefined;
         return new Veiculo(
             crypto.randomUUID(),
-            props.placa.toUpperCase(),
+            placa,
             props.marca,
             props.modelo,
             props.clienteId,
-            props.ano,
+            ano,
             props.cor,
             props.kmAtual,
             true,
@@ -55,11 +66,11 @@ export class Veiculo {
     }): Veiculo {
         return new Veiculo(
             props.id,
-            props.placa,
+            Placa.restore(props.placa),
             props.marca,
             props.modelo,
             props.clienteId,
-            props.ano,
+            props.ano !== undefined ? AnoFabricacao.restore(props.ano) : undefined,
             props.cor,
             props.kmAtual,
             props.ativo,
@@ -69,16 +80,14 @@ export class Veiculo {
     }
 
     update(props: Partial<{ marca: string; modelo: string; ano: number; cor: string; kmAtual: number }>): Veiculo {
-        if (props.ano !== undefined && (props.ano < 1886 || props.ano > new Date().getFullYear() + 1)) {
-            throw new Error('Ano do veículo inválido');
-        }
+        const ano = props.ano !== undefined ? AnoFabricacao.create(props.ano) : this._ano;
         return new Veiculo(
             this.id,
-            this.placa,
+            this._placa,
             props.marca ?? this.marca,
             props.modelo ?? this.modelo,
             this.clienteId,
-            props.ano ?? this.ano,
+            ano,
             props.cor ?? this.cor,
             props.kmAtual ?? this.kmAtual,
             this.ativo,
@@ -88,10 +97,10 @@ export class Veiculo {
     }
 
     deactivate(): Veiculo {
-        return new Veiculo(this.id, this.placa, this.marca, this.modelo, this.clienteId, this.ano, this.cor, this.kmAtual, false, this.createdAt, new Date());
+        return new Veiculo(this.id, this._placa, this.marca, this.modelo, this.clienteId, this._ano, this.cor, this.kmAtual, false, this.createdAt, new Date());
     }
 
     reactivate(): Veiculo {
-        return new Veiculo(this.id, this.placa, this.marca, this.modelo, this.clienteId, this.ano, this.cor, this.kmAtual, true, this.createdAt, new Date());
+        return new Veiculo(this.id, this._placa, this.marca, this.modelo, this.clienteId, this._ano, this.cor, this.kmAtual, true, this.createdAt, new Date());
     }
 }

@@ -36,7 +36,7 @@ describe('OrcamentoMapper', () => {
 
     describe('toPrisma()', () => {
         it('maps domain to prisma shape', () => {
-            const orc = Orcamento.restore({ ...rawOrcamento, status: StatusOrcamento.GERADO, valorTotal: 500, dataEnvio: new Date('2024-01-02') });
+            const orc = Orcamento.restore({ ...rawOrcamento, status: StatusOrcamento.GERADO, valorTotal: 500, dataEnvio: new Date('2024-01-02'), dataResposta: undefined });
             const prisma = OrcamentoMapper.toPrisma(orc);
             expect(prisma.id).toBe('orc-1');
             expect(prisma.osId).toBe('os-1');

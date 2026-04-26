@@ -49,6 +49,7 @@ const makeOs = (status = StatusOS.AGUARDANDO_APROVACAO) =>
         status,
         servicos: [],
         pecas: [],
+        historicoStatus: [],
         dataAbertura: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),

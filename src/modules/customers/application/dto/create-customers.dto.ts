@@ -7,10 +7,10 @@ export class CreateClienteDto {
     @IsString()
     nome: string;
 
-    @ApiProperty({ example: '12345678901', description: 'CPF com 11 dígitos numéricos' })
+    @ApiProperty({ example: '52998224725', description: 'CPF com 11 dígitos numéricos ou CNPJ com 14 dígitos numéricos' })
     @IsNotEmpty()
-    @Matches(/^\d{11}$/, { message: 'CPF deve ter exatamente 11 dígitos numéricos' })
-    cpf: string;
+    @Matches(/^(\d{11}|\d{14})$/, { message: 'Documento deve ter 11 dígitos (CPF) ou 14 dígitos (CNPJ)' })
+    documento: string;
 
     @ApiPropertyOptional({ example: '11999990000' })
     @IsOptional()

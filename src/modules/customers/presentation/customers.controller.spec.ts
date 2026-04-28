@@ -38,24 +38,24 @@ describe('CustomersController', () => {
     });
 
     it('create delegates to CreateClienteUseCase', async () => {
-        const dto = { nome: 'João', cpf: '000' };
+        const dto = { nome: 'João', documento: '000' };
         await controller.create(dto as any);
         expect(createUC.execute).toHaveBeenCalledWith(dto);
     });
 
     it('findAll delegates to GetClienteUseCase.executeAll', async () => {
         await controller.findAll(undefined, undefined, undefined);
-        expect(getUC.executeAll).toHaveBeenCalledWith({ nome: undefined, cpf: undefined, ativo: undefined });
+        expect(getUC.executeAll).toHaveBeenCalledWith({ nome: undefined, documento: undefined, ativo: undefined });
     });
 
     it('findAll with ativo=true passes true filter', async () => {
         await controller.findAll(undefined, undefined, 'true');
-        expect(getUC.executeAll).toHaveBeenCalledWith({ nome: undefined, cpf: undefined, ativo: true });
+        expect(getUC.executeAll).toHaveBeenCalledWith({ nome: undefined, documento: undefined, ativo: true });
     });
 
     it('findAll with ativo=false passes false filter', async () => {
         await controller.findAll(undefined, undefined, 'false');
-        expect(getUC.executeAll).toHaveBeenCalledWith({ nome: undefined, cpf: undefined, ativo: false });
+        expect(getUC.executeAll).toHaveBeenCalledWith({ nome: undefined, documento: undefined, ativo: false });
     });
 
     it('findOne delegates to GetClienteUseCase.execute', async () => {

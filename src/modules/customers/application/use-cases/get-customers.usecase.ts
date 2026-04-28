@@ -16,13 +16,13 @@ export class GetClienteUseCase {
         return cliente;
     }
 
-    async executeAll(filters?: { id?: string; cpf?: string; nome?: string; ativo?: boolean }): Promise<Cliente[]> {
+    async executeAll(filters?: { id?: string; documento?: string; nome?: string; ativo?: boolean }): Promise<Cliente[]> {
         if (filters?.id) {
             const c = await this.repo.findById(filters.id);
             return c ? [c] : [];
         }
-        if (filters?.cpf) {
-            const c = await this.repo.findByCpf(filters.cpf);
+        if (filters?.documento) {
+            const c = await this.repo.findByDocumento(filters.documento);
             return c ? [c] : [];
         }
         if (filters?.nome) {

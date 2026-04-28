@@ -1,4 +1,4 @@
-import { Cliente as PrismaCliente } from '@prisma/client';
+import { Cliente as PrismaCliente, TipoDocumento } from '@prisma/client';
 import { Cliente } from '../../domain/entities/customers.entity';
 
 export class ClienteMapper {
@@ -6,7 +6,7 @@ export class ClienteMapper {
         return Cliente.restore({
             id: raw.id,
             nome: raw.nome,
-            cpf: raw.cpf,
+            documento: raw.documento,
             telefone: raw.telefone ?? undefined,
             email: raw.email ?? undefined,
             endereco: raw.endereco ?? undefined,
@@ -20,7 +20,8 @@ export class ClienteMapper {
         return {
             id: cliente.id,
             nome: cliente.nome,
-            cpf: cliente.cpf,
+            documento: cliente.documento,
+            tipoDocumento: cliente.tipoDocumento as TipoDocumento,
             telefone: cliente.telefone ?? null,
             email: cliente.email ?? null,
             endereco: cliente.endereco ?? null,

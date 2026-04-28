@@ -15,8 +15,9 @@ export class ClientePrismaRepository implements IClienteRepository {
         return ClienteMapper.toDomain(raw);
     }
 
-    async findByCpf(cpf: string): Promise<Cliente | null> {
-        const raw = await this.prisma.cliente.findUnique({ where: { cpf } });
+    async findByDocumento(documento: string): Promise<Cliente | null> {
+        const digits = documento.replace(/\D/g, '');
+        const raw = await this.prisma.cliente.findUnique({ where: { documento: digits } });
         if (!raw) return null;
         return ClienteMapper.toDomain(raw);
     }

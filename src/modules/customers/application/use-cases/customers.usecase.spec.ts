@@ -8,7 +8,7 @@ import type { IClienteRepository } from '../../domain/repositories/customers.rep
 
 const mockRepo = (): jest.Mocked<IClienteRepository> => ({
     findById: jest.fn(),
-    findByCpf: jest.fn(),
+    findByDocumento: jest.fn(),
     findByNome: jest.fn(),
     findAll: jest.fn(),
     create: jest.fn(),
@@ -19,7 +19,7 @@ const makeCliente = (overrides: Partial<Parameters<typeof Cliente.restore>[0]> =
     Cliente.restore({
         id: 'c-1',
         nome: 'João Silva',
-        cpf: '123.456.789-00',
+        documento: '52998224725',
         telefone: '11999999999',
         email: 'joao@example.com',
         endereco: 'Rua A, 1',
@@ -33,22 +33,22 @@ const makeCliente = (overrides: Partial<Parameters<typeof Cliente.restore>[0]> =
 describe('CreateClienteUseCase', () => {
     it('creates and returns cliente', async () => {
         const repo = mockRepo();
-        repo.findByCpf.mockResolvedValue(null);
+        repo.findByDocumento.mockResolvedValue(null);
         repo.create.mockImplementation(async (c) => c);
 
         const useCase = new CreateClienteUseCase(repo as any);
-        const result = await useCase.execute({ nome: 'João', cpf: '52998224725' });
+        const result = await useCase.execute({ nome: 'João', documento: '52998224725' });
 
         expect(repo.create).toHaveBeenCalledTimes(1);
-        expect(result.cpf).toBe('52998224725');
+        expect(result.documento).toBe('52998224725');
     });
 
-    it('throws ConflictException if CPF already exists', async () => {
+    it('throws ConflictException if documento already exists', async () => {
         const repo = mockRepo();
-        repo.findByCpf.mockResolvedValue(makeCliente());
+        repo.findByDocumento.mockResolvedValue(makeCliente());
 
         const useCase = new CreateClienteUseCase(repo as any);
-        await expect(useCase.execute({ nome: 'João', cpf: '123.456.789-00' })).rejects.toThrow(ConflictException);
+        await expect(useCase.execute({ nome: 'João', documento: '52998224725' })).rejects.toThrow(ConflictException);
     });
 });
 
@@ -102,13 +102,13 @@ describe('GetClienteUseCase', () => {
         expect(result).toEqual([]);
     });
 
-    it('executeAll with cpf filter uses findByCpf', async () => {
+    it('executeAll with documento filter uses findByDocumento', async () => {
         const repo = mockRepo();
         const cliente = makeCliente();
-        repo.findByCpf.mockResolvedValue(cliente);
+        repo.findByDocumento.mockResolvedValue(cliente);
 
         const useCase = new GetClienteUseCase(repo as any);
-        const result = await useCase.executeAll({ cpf: '123.456.789-00' });
+        const result = await useCase.executeAll({ documento: '52998224725' });
         expect(result).toHaveLength(1);
     });
 

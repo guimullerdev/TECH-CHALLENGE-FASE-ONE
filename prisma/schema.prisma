@@ -38,20 +38,26 @@ enum StatusOrcamento {
   REPROVADO
 }
 
+enum TipoDocumento {
+  CPF
+  CNPJ
+}
+
 // ---------------------------------------------------------------------------
 // Cadastros
 // ---------------------------------------------------------------------------
 
 model Cliente {
-  id        String   @id @default(uuid())
-  nome      String
-  cpf       String   @unique
-  telefone  String?
-  email     String?
-  endereco  String?
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id            String        @id @default(uuid())
+  nome          String
+  documento     String        @unique
+  tipoDocumento TipoDocumento @map("tipo_documento")
+  telefone      String?
+  email         String?
+  endereco      String?
+  ativo         Boolean       @default(true)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
 
   veiculos        Veiculo[]
   ordensDeServico OrdemDeServico[]

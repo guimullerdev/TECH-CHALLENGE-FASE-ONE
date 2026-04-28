@@ -4,7 +4,8 @@ import { Cliente } from '../../domain/entities/customers.entity';
 const rawCliente = {
     id: 'c-1',
     nome: 'João Silva',
-    cpf: '52998224725',
+    documento: '52998224725',
+    tipoDocumento: 'CPF' as any,
     telefone: '11999999999',
     email: 'joao@test.com',
     endereco: 'Rua A, 1',
@@ -19,7 +20,8 @@ describe('ClienteMapper', () => {
             const cliente = ClienteMapper.toDomain(rawCliente as any);
             expect(cliente.id).toBe('c-1');
             expect(cliente.nome).toBe('João Silva');
-            expect(cliente.cpf).toBe('52998224725');
+            expect(cliente.documento).toBe('52998224725');
+            expect(cliente.tipoDocumento).toBe('CPF');
             expect(cliente.telefone).toBe('11999999999');
             expect(cliente.email).toBe('joao@test.com');
             expect(cliente.ativo).toBe(true);
@@ -39,7 +41,8 @@ describe('ClienteMapper', () => {
             const prisma = ClienteMapper.toPrisma(cliente);
             expect(prisma.id).toBe('c-1');
             expect(prisma.nome).toBe('João Silva');
-            expect(prisma.cpf).toBe('52998224725');
+            expect(prisma.documento).toBe('52998224725');
+            expect(prisma.tipoDocumento).toBe('CPF');
             expect(prisma.telefone).toBe('11999999999');
             expect(prisma.ativo).toBe(true);
         });

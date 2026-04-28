@@ -24,7 +24,7 @@ export class CustomersController {
     @ApiOperation({ summary: 'Criar cliente' })
     @ApiResponse({ status: 201, description: 'Cliente criado com sucesso' })
     @ApiResponse({ status: 400, description: 'Dados inválidos' })
-    @ApiResponse({ status: 409, description: 'CPF já cadastrado' })
+    @ApiResponse({ status: 409, description: 'Documento já cadastrado' })
     create(@Body() dto: CreateClienteDto) {
         return this.createClienteUseCase.execute(dto);
     }
@@ -32,16 +32,16 @@ export class CustomersController {
     @Get()
     @ApiOperation({ summary: 'Listar clientes com filtros opcionais' })
     @ApiQuery({ name: 'nome', required: false })
-    @ApiQuery({ name: 'cpf', required: false })
+    @ApiQuery({ name: 'documento', required: false, description: 'CPF (11 dígitos) ou CNPJ (14 dígitos)' })
     @ApiQuery({ name: 'ativo', required: false, type: Boolean })
     @ApiResponse({ status: 200, description: 'Lista de clientes' })
     findAll(
         @Query('nome') nome?: string,
-        @Query('cpf') cpf?: string,
+        @Query('documento') documento?: string,
         @Query('ativo') ativo?: string,
     ) {
         const ativoFilter = ativo !== undefined ? ativo === 'true' : undefined;
-        return this.getClienteUseCase.executeAll({ nome, cpf, ativo: ativoFilter });
+        return this.getClienteUseCase.executeAll({ nome, documento, ativo: ativoFilter });
     }
 
     @Get(':id')

@@ -12,11 +12,11 @@ export class CreateClienteUseCase {
     ) {}
 
     async execute(dto: CreateClienteDto): Promise<Cliente> {
-        const existing = await this.repo.findByCpf(dto.cpf);
-        if (existing) throw new ConflictException(`CPF ${dto.cpf} já cadastrado`);
+        const existing = await this.repo.findByDocumento(dto.documento);
+        if (existing) throw new ConflictException(`Documento ${dto.documento} já cadastrado`);
         const cliente = Cliente.create({
             nome: dto.nome,
-            cpf: dto.cpf,
+            documento: dto.documento,
             telefone: dto.telefone,
             email: dto.email,
             endereco: dto.endereco,

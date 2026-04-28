@@ -7,8 +7,11 @@ export class ClienteResponseDto {
     @ApiProperty({ example: 'João Silva' })
     nome: string;
 
-    @ApiProperty({ example: '12345678901' })
-    cpf: string;
+    @ApiProperty({ example: '52998224725' })
+    documento: string;
+
+    @ApiProperty({ example: 'CPF', enum: ['CPF', 'CNPJ'] })
+    tipoDocumento: 'CPF' | 'CNPJ';
 
     @ApiPropertyOptional({ example: '11999990000' })
     telefone?: string;

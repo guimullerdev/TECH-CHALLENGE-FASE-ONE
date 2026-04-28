@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsInt, IsUUID, IsNotEmpty, IsOptional, Min, Max } from 'class-validator';
+import { IsString, IsInt, IsUUID, IsNotEmpty, IsOptional, Min, Max, Matches } from 'class-validator';
 
 export class CreateVeiculoDto {
     @ApiProperty({ example: 'a3e4f5b6-1234-5678-9abc-def012345678', description: 'UUID do cliente' })
@@ -7,9 +7,9 @@ export class CreateVeiculoDto {
     @IsUUID()
     clienteId: string;
 
-    @ApiProperty({ example: 'ABC1D234', description: 'Placa no formato Mercosul ou antigo' })
+    @ApiProperty({ example: 'ABC1D23', description: 'Placa no formato antigo (ABC1234) ou Mercosul (ABC1D23)' })
     @IsNotEmpty()
-    @IsString()
+    @Matches(/^[A-Z]{3}(-?\d{4}|\d[A-Z]\d{2})$/, { message: 'Placa inválida. Use o formato antigo (ABC1234) ou Mercosul (ABC1D23)' })
     placa: string;
 
     @ApiProperty({ example: 'Toyota' })

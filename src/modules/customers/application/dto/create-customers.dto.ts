@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsEmail, IsNotEmpty, IsOptional, Matches } from 'class-validator';
+import { IsDocumentoValido } from '../../../../common/validators/cpf-cnpj.validator';
 
 export class CreateClienteDto {
     @ApiProperty({ example: 'João Silva' })
@@ -10,6 +11,7 @@ export class CreateClienteDto {
     @ApiProperty({ example: '52998224725', description: 'CPF com 11 dígitos numéricos ou CNPJ com 14 dígitos numéricos' })
     @IsNotEmpty()
     @Matches(/^(\d{11}|\d{14})$/, { message: 'Documento deve ter 11 dígitos (CPF) ou 14 dígitos (CNPJ)' })
+    @IsDocumentoValido()
     documento: string;
 
     @ApiPropertyOptional({ example: '11999990000' })

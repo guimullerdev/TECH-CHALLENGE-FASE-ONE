@@ -29,6 +29,7 @@ import { DeliverOrderUseCase } from '../application/use-cases/deliver-order.usec
 import { GetOrcamentoUseCase } from '../../orcamentos/application/use-cases/get-orcamento.usecase';
 import { GetOsAcompanhamentoUseCase } from '../application/use-cases/get-os-acompanhamento.usecase';
 import { GetTempoMedioOsUseCase } from '../application/use-cases/get-tempo-medio-os.usecase';
+import { ConsultaPublicaOsUseCase } from '../application/use-cases/consulta-publica-os.usecase';
 
 import { CreateOsDto } from '../application/dto/create-service-orders.dto';
 import { AddServicoDto } from '../application/dto/add-service-to-order.dto';
@@ -37,6 +38,7 @@ import { RealizarServicoDto } from '../application/dto/realizar-servico.dto';
 import { StatusOS } from '../domain/entities/service-orders.entity';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../auth/domain/enums/user-role.enum';
+import { Public } from '../../auth/decorators/public.decorator';
 
 @ApiTags('os')
 @ApiBearerAuth()
@@ -60,6 +62,7 @@ export class ServiceOrdersController {
         private readonly getOrcamentoUseCase: GetOrcamentoUseCase,
         private readonly getAcompanhamentoUseCase: GetOsAcompanhamentoUseCase,
         private readonly getTempoMedioUseCase: GetTempoMedioOsUseCase,
+        private readonly consultaPublicaUseCase: ConsultaPublicaOsUseCase,
     ) {}
 
     @Post()
@@ -83,6 +86,20 @@ export class ServiceOrdersController {
         @Query('veiculoId') veiculoId?: string,
     ) {
         return this.getOsUseCase.executeAll({ status, clienteId, veiculoId });
+    }
+
+    @Get('consulta')
+    @Public()
+    @ApiOperation({ summary: 'Consulta pública da OS pelo cliente (sem autenticação)' })
+    @ApiQuery({ name: 'numero', required: true, description: 'Número da OS' })
+    @ApiQuery({ name: 'documento', required: true, description: 'CPF ou CNPJ do cliente (somente dígitos)' })
+    @ApiResponse({ status: 200, description: 'Status e dados públicos da OS' })
+    @ApiResponse({ status: 404, description: 'OS não encontrada ou documento não confere' })
+    consultaPublica(
+        @Query('numero') numero: string,
+        @Query('documento') documento: string,
+    ) {
+        return this.consultaPublicaUseCase.execute(numero, documento);
     }
 
     @Get(':id')

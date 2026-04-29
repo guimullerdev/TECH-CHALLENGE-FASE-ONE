@@ -13,6 +13,7 @@ import { PartsModule } from './modules/parts/parts.module';
 import { EstoqueModule } from './modules/estoque/estoque.module';
 import { OrcamentosModule } from './modules/orcamentos/orcamentos.module';
 import { ServiceOrdersModule } from './modules/service-orders/service-orders.module';
+import { RelatoriosModule } from './modules/relatorios/relatorios.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ServiceOrdersModule } from './modules/service-orders/service-orders.mod
     EstoqueModule,
     OrcamentosModule,
     ServiceOrdersModule,
+    RelatoriosModule,
   ],
   providers: [
     {

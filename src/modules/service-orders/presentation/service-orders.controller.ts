@@ -126,6 +126,16 @@ export class ServiceOrdersController {
         });
     }
 
+    @Get(':id/status')
+    @Public()
+    @ApiOperation({ summary: 'Consultar status atual da OS (sem autenticação)' })
+    @ApiParam({ name: 'id', description: 'UUID da OS' })
+    @ApiResponse({ status: 200, description: 'Status atual e histórico de transições' })
+    @ApiResponse({ status: 404, description: 'OS não encontrada' })
+    getStatus(@Param('id') id: string) {
+        return this.getAcompanhamentoUseCase.execute(id);
+    }
+
     @Get(':id/acompanhamento')
     @ApiOperation({ summary: 'Consultar acompanhamento público da OS pelo cliente' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })

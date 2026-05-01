@@ -15,4 +15,11 @@ export class RelatoriosController {
     getTempoMedioServicos(): Promise<TempoMedioServicoDto[]> {
         return this.tempoMedioUseCase.execute();
     }
+
+    @Get('tempo-medio')
+    @ApiOperation({ summary: 'Tempo médio de execução por tipo de serviço (alias)' })
+    @ApiResponse({ status: 200, type: [TempoMedioServicoDto] })
+    getTempoMedio(): Promise<TempoMedioServicoDto[]> {
+        return this.tempoMedioUseCase.execute();
+    }
 }

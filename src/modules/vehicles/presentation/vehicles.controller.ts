@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Patch, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Put, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 
 import { CreateVeiculoUseCase } from '../application/use-cases/create-vehicle.usecase';
@@ -69,6 +69,16 @@ export class VehiclesController {
     @ApiResponse({ status: 200, description: 'Veículo desativado' })
     @ApiResponse({ status: 404, description: 'Veículo não encontrado' })
     deactivate(@Param('id') id: string) {
+        return this.deactivateVeiculoUseCase.execute(id);
+    }
+
+    @Delete(':id')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Remover veículo (soft delete)' })
+    @ApiParam({ name: 'id', description: 'UUID do veículo' })
+    @ApiResponse({ status: 200, description: 'Veículo removido' })
+    @ApiResponse({ status: 404, description: 'Veículo não encontrado' })
+    remove(@Param('id') id: string) {
         return this.deactivateVeiculoUseCase.execute(id);
     }
 }

@@ -18,7 +18,7 @@ const mockVeiculoRepo = (): jest.Mocked<IVeiculoRepository> => ({
 
 const mockClienteRepo = (): jest.Mocked<IClienteRepository> => ({
     findById: jest.fn(),
-    findByCpf: jest.fn(),
+    findByDocumento: jest.fn(),
     findByNome: jest.fn(),
     findAll: jest.fn(),
     create: jest.fn(),
@@ -44,7 +44,7 @@ const makeCliente = () =>
     Cliente.restore({
         id: 'c-1',
         nome: 'João',
-        cpf: '000.000.000-00',
+        documento: '000',
         ativo: true,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -131,6 +131,16 @@ describe('GetVeiculoUseCase', () => {
         const useCase = new GetVeiculoUseCase(repo as any);
         const result = await useCase.executeAll({ id: 'missing' });
         expect(result).toEqual([]);
+    });
+
+    it('executeAll with clienteId filter passes it to findAll', async () => {
+        const repo = mockVeiculoRepo();
+        repo.findAll.mockResolvedValue([makeVeiculo()]);
+
+        const useCase = new GetVeiculoUseCase(repo as any);
+        const result = await useCase.executeAll({ clienteId: 'c-1', placa: 'ABC-1234', ativo: true });
+        expect(repo.findAll).toHaveBeenCalledWith({ clienteId: 'c-1', placa: 'ABC-1234', ativo: true });
+        expect(result).toHaveLength(1);
     });
 });
 

@@ -67,6 +67,15 @@ describe('Veiculo entity', () => {
             const v = Veiculo.create({ placa: 'ABC1D23', marca: 'X', modelo: 'Y', clienteId: 'c1' });
             expect(() => v.update({ ano: 1800 })).toThrow('inválido');
         });
+
+        it('keeps unchanged fields when only some props are updated', () => {
+            const v = Veiculo.create({ placa: 'ABC1234', marca: 'Toyota', modelo: 'Corolla', clienteId: 'c1', cor: 'Prata', kmAtual: 50000 });
+            const updated = v.update({ cor: 'Preta' });
+            expect(updated.marca).toBe('Toyota');
+            expect(updated.modelo).toBe('Corolla');
+            expect(updated.cor).toBe('Preta');
+            expect(updated.kmAtual).toBe(50000);
+        });
     });
 
     describe('deactivate()', () => {

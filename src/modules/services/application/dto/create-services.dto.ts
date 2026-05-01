@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsNotEmpty, IsOptional, Min } from 'class-validator';
+import { IsString, IsNumber, IsInt, IsNotEmpty, IsOptional, Min } from 'class-validator';
 
 export class CreateServicoDto {
     @ApiProperty({ example: 'Troca de óleo' })
@@ -16,4 +16,10 @@ export class CreateServicoDto {
     @IsOptional()
     @IsString()
     descricao?: string;
+
+    @ApiPropertyOptional({ example: 60, description: 'Tempo estimado de execução em minutos' })
+    @IsOptional()
+    @IsInt()
+    @Min(1)
+    tempoEstimado?: number;
 }

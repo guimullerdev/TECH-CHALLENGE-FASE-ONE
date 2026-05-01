@@ -85,13 +85,14 @@ model Veiculo {
 }
 
 model Servico {
-  id        String   @id @default(uuid())
-  nome      String
-  descricao String?
-  precoBase Decimal  @map("preco_base") @db.Decimal(10, 2)
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(uuid())
+  nome           String
+  descricao      String?
+  precoBase      Decimal  @map("preco_base") @db.Decimal(10, 2)
+  tempoEstimado  Int?     @map("tempo_estimado")
+  ativo          Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   osItensServico OsItemServico[]
 

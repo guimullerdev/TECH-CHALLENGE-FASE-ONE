@@ -10,6 +10,7 @@ export class Servico {
         public readonly nome: string,
         precoBase: Preco,
         descricao: DescricaoServico | undefined,
+        public readonly tempoEstimado: number | undefined,
         public readonly ativo: boolean,
         public readonly createdAt: Date,
         public readonly updatedAt: Date,
@@ -21,13 +22,14 @@ export class Servico {
     get precoBase(): number { return this._precoBase.getValue(); }
     get descricao(): string | undefined { return this._descricao?.getValue(); }
 
-    static create(props: { nome: string; precoBase: number; descricao?: string }): Servico {
+    static create(props: { nome: string; precoBase: number; descricao?: string; tempoEstimado?: number }): Servico {
         const descricao = props.descricao ? DescricaoServico.create(props.descricao) : undefined;
         return new Servico(
             crypto.randomUUID(),
             props.nome,
             Preco.create(props.precoBase),
             descricao,
+            props.tempoEstimado,
             true,
             new Date(),
             new Date(),
@@ -39,15 +41,16 @@ export class Servico {
         nome: string;
         precoBase: number;
         descricao?: string;
+        tempoEstimado?: number;
         ativo: boolean;
         createdAt: Date;
         updatedAt: Date;
     }): Servico {
         const descricao = props.descricao ? DescricaoServico.restore(props.descricao) : undefined;
-        return new Servico(props.id, props.nome, Preco.restore(props.precoBase), descricao, props.ativo, props.createdAt, props.updatedAt);
+        return new Servico(props.id, props.nome, Preco.restore(props.precoBase), descricao, props.tempoEstimado, props.ativo, props.createdAt, props.updatedAt);
     }
 
-    update(props: Partial<{ nome: string; precoBase: number; descricao: string }>): Servico {
+    update(props: Partial<{ nome: string; precoBase: number; descricao: string; tempoEstimado: number }>): Servico {
         const preco = props.precoBase !== undefined ? Preco.create(props.precoBase) : this._precoBase;
         const descricao = props.descricao !== undefined ? DescricaoServico.create(props.descricao) : this._descricao;
         return new Servico(
@@ -55,6 +58,7 @@ export class Servico {
             props.nome ?? this.nome,
             preco,
             descricao,
+            props.tempoEstimado !== undefined ? props.tempoEstimado : this.tempoEstimado,
             this.ativo,
             this.createdAt,
             new Date(),
@@ -62,10 +66,10 @@ export class Servico {
     }
 
     deactivate(): Servico {
-        return new Servico(this.id, this.nome, this._precoBase, this._descricao, false, this.createdAt, new Date());
+        return new Servico(this.id, this.nome, this._precoBase, this._descricao, this.tempoEstimado, false, this.createdAt, new Date());
     }
 
     reactivate(): Servico {
-        return new Servico(this.id, this.nome, this._precoBase, this._descricao, true, this.createdAt, new Date());
+        return new Servico(this.id, this.nome, this._precoBase, this._descricao, this.tempoEstimado, true, this.createdAt, new Date());
     }
 }

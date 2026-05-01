@@ -18,6 +18,7 @@ export class UpdateServicoUseCase {
             nome: dto.nome,
             precoBase: dto.precoBase,
             descricao: dto.descricao,
+            tempoEstimado: dto.tempoEstimado,
         });
         return this.repo.update(updated);
     }

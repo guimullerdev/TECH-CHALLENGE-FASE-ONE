@@ -16,6 +16,7 @@ export class CreateServicoUseCase {
             nome: dto.nome,
             precoBase: dto.precoBase,
             descricao: dto.descricao,
+            tempoEstimado: dto.tempoEstimado,
         });
         return this.repo.create(servico);
     }

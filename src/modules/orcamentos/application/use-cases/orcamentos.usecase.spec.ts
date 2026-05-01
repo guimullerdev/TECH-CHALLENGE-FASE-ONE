@@ -5,7 +5,7 @@ import { AprovarOrcamentoUseCase } from './aprovar-orcamento.usecase';
 import { ReprovarOrcamentoUseCase } from './reprovar-orcamento.usecase';
 import { GetOrcamentoUseCase } from './get-orcamento.usecase';
 import { Orcamento, StatusOrcamento } from '../../domain/entities/orcamento.entity';
-import { OrdemDeServico, StatusOS } from '../../../service-orders/domain/entities/service-orders.entity';
+import { OrdemDeServico, StatusOS, InvalidTransitionError } from '../../../service-orders/domain/entities/service-orders.entity';
 import type { IOrcamentoRepository } from '../../domain/repositories/orcamento.repository.interface';
 import type { IOrdemDeServicoRepository } from '../../../service-orders/domain/repositories/service-orders.repository.interface';
 import type { LiberarReservaUseCase } from '../../../estoque/application/use-cases/liberar-reserva.usecase';
@@ -99,6 +99,16 @@ describe('EnviarOrcamentoUseCase', () => {
         const useCase = new EnviarOrcamentoUseCase(repo as any);
         await expect(useCase.execute('orc-1')).rejects.toThrow(UnprocessableEntityException);
     });
+
+    it('rethrows unexpected errors from enviar', async () => {
+        const repo = mockOrcRepo();
+        const orc = makeOrcamento(StatusOrcamento.GERADO);
+        jest.spyOn(orc, 'enviar').mockImplementation(() => { throw new Error('unexpected-enviar'); });
+        repo.findById.mockResolvedValue(orc);
+
+        const useCase = new EnviarOrcamentoUseCase(repo as any);
+        await expect(useCase.execute('orc-1')).rejects.toThrow('unexpected-enviar');
+    });
 });
 
 // ─── AprovarOrcamentoUseCase ─────────────────────────────────────────────────
@@ -149,6 +159,43 @@ describe('AprovarOrcamentoUseCase', () => {
         const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any);
         await expect(useCase.execute('orc-1')).rejects.toThrow(UnprocessableEntityException);
     });
+
+    it('rethrows unexpected errors from orcamento.aprovar', async () => {
+        const orcRepo = mockOrcRepo();
+        const osRepo = mockOsRepo();
+        const orc = makeOrcamento(StatusOrcamento.ENVIADO);
+        jest.spyOn(orc, 'aprovar').mockImplementation(() => { throw new Error('unexpected-aprovar'); });
+        orcRepo.findById.mockResolvedValue(orc);
+
+        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any);
+        await expect(useCase.execute('orc-1')).rejects.toThrow('unexpected-aprovar');
+    });
+
+    it('rethrows unexpected errors from os.aprovarOrcamento', async () => {
+        const orcRepo = mockOrcRepo();
+        const osRepo = mockOsRepo();
+        orcRepo.findById.mockResolvedValue(makeOrcamento(StatusOrcamento.ENVIADO));
+        orcRepo.update.mockImplementation(async (o) => o);
+        const os = makeOs(StatusOS.AGUARDANDO_APROVACAO);
+        jest.spyOn(os, 'aprovarOrcamento').mockImplementation(() => { throw new Error('unexpected-os-aprovar'); });
+        osRepo.findById.mockResolvedValue(os);
+
+        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any);
+        await expect(useCase.execute('orc-1')).rejects.toThrow('unexpected-os-aprovar');
+    });
+
+    it('throws UnprocessableEntityException when os.aprovarOrcamento throws InvalidTransitionError', async () => {
+        const orcRepo = mockOrcRepo();
+        const osRepo = mockOsRepo();
+        orcRepo.findById.mockResolvedValue(makeOrcamento(StatusOrcamento.ENVIADO));
+        orcRepo.update.mockImplementation(async (o) => o);
+        const os = makeOs(StatusOS.AGUARDANDO_APROVACAO);
+        jest.spyOn(os, 'aprovarOrcamento').mockImplementation(() => { throw new InvalidTransitionError('bad transition'); });
+        osRepo.findById.mockResolvedValue(os);
+
+        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any);
+        await expect(useCase.execute('orc-1')).rejects.toThrow(UnprocessableEntityException);
+    });
 });
 
 // ─── ReprovarOrcamentoUseCase ────────────────────────────────────────────────
@@ -183,6 +230,88 @@ describe('ReprovarOrcamentoUseCase', () => {
         const osRepo = mockOsRepo();
         const liberar = mockLiberarReserva();
         orcRepo.findById.mockResolvedValue(makeOrcamento(StatusOrcamento.APROVADO));
+
+        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar);
+        await expect(useCase.execute('orc-1')).rejects.toThrow(UnprocessableEntityException);
+    });
+
+    it('skips OS update when OS not found', async () => {
+        const orcRepo = mockOrcRepo();
+        const osRepo = mockOsRepo();
+        const liberar = mockLiberarReserva();
+        orcRepo.findById.mockResolvedValue(makeOrcamento(StatusOrcamento.ENVIADO));
+        osRepo.findById.mockResolvedValue(null);
+        orcRepo.update.mockImplementation(async (o) => o);
+
+        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar);
+        const result = await useCase.execute('orc-1');
+
+        expect(result.status).toBe(StatusOrcamento.REPROVADO);
+        expect(osRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('liberates reserves for each peca when OS has pecas', async () => {
+        const orcRepo = mockOrcRepo();
+        const osRepo = mockOsRepo();
+        const liberar = mockLiberarReserva();
+        orcRepo.findById.mockResolvedValue(makeOrcamento(StatusOrcamento.ENVIADO));
+        const os = makeOs(StatusOS.AGUARDANDO_APROVACAO);
+        const osWithPecas = OrdemDeServico.restore({
+            ...os.toPlain ? os.toPlain() : {},
+            id: 'os-1', numero: 'OS-001', clienteId: 'c-1', veiculoId: 'v-1',
+            status: StatusOS.AGUARDANDO_APROVACAO,
+            servicos: [],
+            pecas: [
+                { id: 'item-p-1', pecaId: 'p-1', quantidade: 2, valorUnitario: 25, status: 'reservada' as const },
+            ],
+            historicoStatus: [],
+            dataAbertura: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        });
+        osRepo.findById.mockResolvedValue(osWithPecas);
+        osRepo.update.mockImplementation(async (o) => o);
+        orcRepo.update.mockImplementation(async (o) => o);
+
+        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar);
+        await useCase.execute('orc-1');
+
+        expect(liberar.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('rethrows unexpected errors from orcamento.reprovar', async () => {
+        const orcRepo = mockOrcRepo();
+        const osRepo = mockOsRepo();
+        const liberar = mockLiberarReserva();
+        const orc = makeOrcamento(StatusOrcamento.ENVIADO);
+        jest.spyOn(orc, 'reprovar').mockImplementation(() => { throw new Error('unexpected-reprovar'); });
+        orcRepo.findById.mockResolvedValue(orc);
+
+        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar);
+        await expect(useCase.execute('orc-1')).rejects.toThrow('unexpected-reprovar');
+    });
+
+    it('rethrows unexpected errors from os.reprovarOrcamento', async () => {
+        const orcRepo = mockOrcRepo();
+        const osRepo = mockOsRepo();
+        const liberar = mockLiberarReserva();
+        orcRepo.findById.mockResolvedValue(makeOrcamento(StatusOrcamento.ENVIADO));
+        const os = makeOs(StatusOS.AGUARDANDO_APROVACAO);
+        jest.spyOn(os, 'reprovarOrcamento').mockImplementation(() => { throw new Error('unexpected-os-reprovar'); });
+        osRepo.findById.mockResolvedValue(os);
+
+        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar);
+        await expect(useCase.execute('orc-1')).rejects.toThrow('unexpected-os-reprovar');
+    });
+
+    it('throws UnprocessableEntityException when os.reprovarOrcamento throws InvalidTransitionError', async () => {
+        const orcRepo = mockOrcRepo();
+        const osRepo = mockOsRepo();
+        const liberar = mockLiberarReserva();
+        orcRepo.findById.mockResolvedValue(makeOrcamento(StatusOrcamento.ENVIADO));
+        const os = makeOs(StatusOS.AGUARDANDO_APROVACAO);
+        jest.spyOn(os, 'reprovarOrcamento').mockImplementation(() => { throw new InvalidTransitionError('bad transition'); });
+        osRepo.findById.mockResolvedValue(os);
 
         const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar);
         await expect(useCase.execute('orc-1')).rejects.toThrow(UnprocessableEntityException);

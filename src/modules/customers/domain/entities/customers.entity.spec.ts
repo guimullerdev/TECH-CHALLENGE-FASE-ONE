@@ -74,6 +74,13 @@ describe('Cliente entity', () => {
             expect(updated.id).toBe(c.id);
             expect(updated.createdAt).toEqual(c.createdAt);
         });
+
+        it('keeps nome and endereco unchanged when not provided', () => {
+            const c = Cliente.restore({ id: 'c-1', nome: 'Original', documento: '111', ativo: true, createdAt: new Date(), updatedAt: new Date(), endereco: 'Rua A' });
+            const updated = c.update({ telefone: '11988887777' });
+            expect(updated.nome).toBe('Original');
+            expect(updated.endereco).toBe('Rua A');
+        });
     });
 
     describe('deactivate()', () => {

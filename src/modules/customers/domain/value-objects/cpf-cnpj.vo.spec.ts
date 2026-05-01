@@ -38,6 +38,11 @@ describe('CpfCnpj', () => {
         it('throws for CNPJ with invalid check digits', () => {
             expect(() => CpfCnpj.create('11222333000100')).toThrow('CNPJ');
         });
+
+        it('accepts valid CNPJ with zero check digits (rest < 2 branch)', () => {
+            const vo = CpfCnpj.create('07526557000100');
+            expect(vo.getValue()).toBe('07526557000100');
+        });
     });
 
     describe('restore()', () => {

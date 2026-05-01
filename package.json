@@ -87,6 +87,7 @@
       "!**/*.spec.ts"
     ],
     "coverageDirectory": "../coverage",
+    "coverageProvider": "v8",
     "testEnvironment": "node"
   }
 }

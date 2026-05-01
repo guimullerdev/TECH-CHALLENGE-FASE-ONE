@@ -31,6 +31,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev_secret_key}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
       NODE_ENV: development
+      CHOKIDAR_USEPOLLING: 'true'
+      WATCHPACK_POLLING: 'true'
     ports:
       - '3000:3000'
     volumes:

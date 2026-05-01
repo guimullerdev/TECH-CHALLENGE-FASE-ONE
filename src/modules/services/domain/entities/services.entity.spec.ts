@@ -45,6 +45,13 @@ describe('Servico entity', () => {
             const s = Servico.create({ nome: 'X', precoBase: 10 });
             expect(() => s.update({ precoBase: -1 })).toThrow('negativo');
         });
+
+        it('keeps nome and precoBase when not provided', () => {
+            const s = Servico.create({ nome: 'OldName', precoBase: 150 });
+            const updated = s.update({});
+            expect(updated.nome).toBe('OldName');
+            expect(updated.precoBase).toBe(150);
+        });
     });
 
     describe('deactivate()', () => {

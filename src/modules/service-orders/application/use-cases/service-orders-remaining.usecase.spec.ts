@@ -187,6 +187,20 @@ describe('AddPecaToOsUseCase', () => {
         const useCase = new AddPecaToOsUseCase(osRepo as any, pecaRepo as any, reservar);
         await expect(useCase.execute('os-1', 'missing', 1)).rejects.toThrow(NotFoundException);
     });
+
+    it('throws ConflictException if peca already in OS', async () => {
+        const osRepo = mockOsRepo();
+        const pecaRepo = mockPecaRepo();
+        const reservar = { execute: jest.fn() } as unknown as ReservarEstoqueUseCase;
+        const os = makeOs(StatusOS.RECEBIDA, {
+            pecas: [{ id: 'item-1', pecaId: 'p-1', quantidade: 1, valorUnitario: 25, status: 'reservada' as const }],
+        });
+        osRepo.findById.mockResolvedValue(os);
+        pecaRepo.findById.mockResolvedValue(makePeca());
+
+        const useCase = new AddPecaToOsUseCase(osRepo as any, pecaRepo as any, reservar);
+        await expect(useCase.execute('os-1', 'p-1', 1)).rejects.toThrow(ConflictException);
+    });
 });
 
 // ─── RemoveServicoFromOsUseCase ──────────────────────────────────────────────
@@ -286,6 +300,16 @@ describe('StartDiagnosisUseCase', () => {
         const useCase = new StartDiagnosisUseCase(repo as any);
         await expect(useCase.execute('os-1')).rejects.toThrow(UnprocessableEntityException);
     });
+
+    it('rethrows unexpected errors from iniciarDiagnostico', async () => {
+        const repo = mockOsRepo();
+        const os = makeOs(StatusOS.RECEBIDA);
+        jest.spyOn(os, 'iniciarDiagnostico').mockImplementation(() => { throw new Error('unexpected'); });
+        repo.findById.mockResolvedValue(os);
+
+        const useCase = new StartDiagnosisUseCase(repo as any);
+        await expect(useCase.execute('os-1')).rejects.toThrow('unexpected');
+    });
 });
 
 // ─── FinishDiagnosisUseCase ──────────────────────────────────────────────────
@@ -321,6 +345,17 @@ describe('FinishDiagnosisUseCase', () => {
         const useCase = new FinishDiagnosisUseCase(repo as any, gerarOrcamento);
         await expect(useCase.execute('os-1')).rejects.toThrow(UnprocessableEntityException);
     });
+
+    it('rethrows unexpected errors from concluirDiagnostico', async () => {
+        const repo = mockOsRepo();
+        const gerarOrcamento = { execute: jest.fn() } as unknown as GerarOrcamentoUseCase;
+        const os = makeOs(StatusOS.EM_DIAGNOSTICO);
+        jest.spyOn(os, 'concluirDiagnostico').mockImplementation(() => { throw new Error('unexpected-fd'); });
+        repo.findById.mockResolvedValue(os);
+
+        const useCase = new FinishDiagnosisUseCase(repo as any, gerarOrcamento);
+        await expect(useCase.execute('os-1')).rejects.toThrow('unexpected-fd');
+    });
 });
 
 // ─── IniciarExecucaoUseCase ──────────────────────────────────────────────────
@@ -349,6 +384,16 @@ describe('IniciarExecucaoUseCase', () => {
 
         const useCase = new IniciarExecucaoUseCase(repo as any);
         await expect(useCase.execute('os-1')).rejects.toThrow(UnprocessableEntityException);
+    });
+
+    it('rethrows unexpected errors from iniciarExecucao', async () => {
+        const repo = mockOsRepo();
+        const os = makeOs(StatusOS.APROVADA);
+        jest.spyOn(os, 'iniciarExecucao').mockImplementation(() => { throw new Error('unexpected-ie'); });
+        repo.findById.mockResolvedValue(os);
+
+        const useCase = new IniciarExecucaoUseCase(repo as any);
+        await expect(useCase.execute('os-1')).rejects.toThrow('unexpected-ie');
     });
 });
 
@@ -379,6 +424,16 @@ describe('FinishOrderUseCase', () => {
         const useCase = new FinishOrderUseCase(repo as any);
         await expect(useCase.execute('os-1')).rejects.toThrow(UnprocessableEntityException);
     });
+
+    it('rethrows unexpected errors from finalizarExecucao', async () => {
+        const repo = mockOsRepo();
+        const os = makeOs(StatusOS.EM_EXECUCAO);
+        jest.spyOn(os, 'finalizarExecucao').mockImplementation(() => { throw new Error('unexpected-fo'); });
+        repo.findById.mockResolvedValue(os);
+
+        const useCase = new FinishOrderUseCase(repo as any);
+        await expect(useCase.execute('os-1')).rejects.toThrow('unexpected-fo');
+    });
 });
 
 // ─── DeliverOrderUseCase ─────────────────────────────────────────────────────
@@ -407,6 +462,16 @@ describe('DeliverOrderUseCase', () => {
 
         const useCase = new DeliverOrderUseCase(repo as any);
         await expect(useCase.execute('os-1')).rejects.toThrow(UnprocessableEntityException);
+    });
+
+    it('rethrows unexpected errors from entregar', async () => {
+        const repo = mockOsRepo();
+        const os = makeOs(StatusOS.FINALIZADA);
+        jest.spyOn(os, 'entregar').mockImplementation(() => { throw new Error('unexpected-do'); });
+        repo.findById.mockResolvedValue(os);
+
+        const useCase = new DeliverOrderUseCase(repo as any);
+        await expect(useCase.execute('os-1')).rejects.toThrow('unexpected-do');
     });
 });
 
@@ -541,6 +606,16 @@ describe('RejectBudgetUseCase', () => {
 
         const useCase = new RejectBudgetUseCase(repo as any);
         await expect(useCase.execute('os-1')).rejects.toThrow(UnprocessableEntityException);
+    });
+
+    it('rethrows unexpected errors from reprovarOrcamento', async () => {
+        const repo = mockOsRepo();
+        const os = makeOs(StatusOS.AGUARDANDO_APROVACAO);
+        jest.spyOn(os, 'reprovarOrcamento').mockImplementation(() => { throw new Error('unexpected-rb'); });
+        repo.findById.mockResolvedValue(os);
+
+        const useCase = new RejectBudgetUseCase(repo as any);
+        await expect(useCase.execute('os-1')).rejects.toThrow('unexpected-rb');
     });
 });
 

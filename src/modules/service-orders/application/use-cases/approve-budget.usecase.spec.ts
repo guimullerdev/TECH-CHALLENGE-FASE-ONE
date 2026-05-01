@@ -46,4 +46,14 @@ describe('ApproveBudgetUseCase', () => {
         expect(repo.update).toHaveBeenCalledTimes(1);
         expect(result.status).toBe(StatusOS.APROVADA);
     });
+
+    it('rethrows unexpected errors from aprovarOrcamento', async () => {
+        const repo = mockRepo();
+        const ready = makeApprovalReadyOrder();
+        jest.spyOn(ready, 'aprovarOrcamento').mockImplementation(() => { throw new Error('unexpected-ab'); });
+        repo.findById.mockResolvedValue(ready);
+
+        const useCase = new ApproveBudgetUseCase(repo as any);
+        await expect(useCase.execute('order-1')).rejects.toThrow('unexpected-ab');
+    });
 });

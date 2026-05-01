@@ -17,6 +17,7 @@ import { DeliverOrderUseCase } from '../application/use-cases/deliver-order.usec
 import { GetOrcamentoUseCase } from '../../orcamentos/application/use-cases/get-orcamento.usecase';
 import { GetOsAcompanhamentoUseCase } from '../application/use-cases/get-os-acompanhamento.usecase';
 import { GetTempoMedioOsUseCase } from '../application/use-cases/get-tempo-medio-os.usecase';
+import { ConsultaPublicaOsUseCase } from '../application/use-cases/consulta-publica-os.usecase';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 const uc = (val: any = { id: 'os-1' }) => ({ execute: jest.fn().mockResolvedValue(val), executeAll: jest.fn().mockResolvedValue([val]) });
@@ -40,6 +41,7 @@ describe('ServiceOrdersController', () => {
     let getOrcamentoUC: { execute: jest.Mock; executeByOsId: jest.Mock };
     let getAcompanhamentoUC: { execute: jest.Mock };
     let getTempoMedioUC: { execute: jest.Mock };
+    let consultaPublicaUC: { execute: jest.Mock };
 
     beforeEach(async () => {
         createUC = { execute: jest.fn().mockResolvedValue({ id: 'os-1' }) };
@@ -59,6 +61,7 @@ describe('ServiceOrdersController', () => {
         getOrcamentoUC = { execute: jest.fn().mockResolvedValue({ id: 'orc-1' }), executeByOsId: jest.fn().mockResolvedValue({ id: 'orc-1' }) };
         getAcompanhamentoUC = { execute: jest.fn().mockResolvedValue({ id: 'os-1', statusAtual: 'RECEBIDA' }) };
         getTempoMedioUC = { execute: jest.fn().mockResolvedValue({ totalOsConsideradas: 0, tempoMedioEmHoras: 0 }) };
+        consultaPublicaUC = { execute: jest.fn().mockResolvedValue({ numero: 'OS-001', status: 'RECEBIDA' }) };
 
         const module: TestingModule = await Test.createTestingModule({
             controllers: [ServiceOrdersController],
@@ -80,6 +83,7 @@ describe('ServiceOrdersController', () => {
                 { provide: GetOrcamentoUseCase, useValue: getOrcamentoUC },
                 { provide: GetOsAcompanhamentoUseCase, useValue: getAcompanhamentoUC },
                 { provide: GetTempoMedioOsUseCase, useValue: getTempoMedioUC },
+                { provide: ConsultaPublicaOsUseCase, useValue: consultaPublicaUC },
             ],
         })
             .overrideGuard(JwtAuthGuard)
@@ -168,5 +172,28 @@ describe('ServiceOrdersController', () => {
     it('getOrcamento delegates to GetOrcamentoUseCase.executeByOsId', async () => {
         await controller.getOrcamento('os-1');
         expect(getOrcamentoUC.executeByOsId).toHaveBeenCalledWith('os-1');
+    });
+
+    it('consultaPublica delegates to ConsultaPublicaOsUseCase', async () => {
+        await controller.consultaPublica('OS-001', '12345678901');
+        expect(consultaPublicaUC.execute).toHaveBeenCalledWith('OS-001', '12345678901');
+    });
+
+    it('getTempoMedio delegates to GetTempoMedioOsUseCase without dates', async () => {
+        await controller.getTempoMedio(undefined, undefined);
+        expect(getTempoMedioUC.execute).toHaveBeenCalledWith({ dataInicio: undefined, dataFim: undefined });
+    });
+
+    it('getTempoMedio passes parsed dates when provided', async () => {
+        await controller.getTempoMedio('2024-01-01', '2024-12-31');
+        expect(getTempoMedioUC.execute).toHaveBeenCalledWith({
+            dataInicio: new Date('2024-01-01'),
+            dataFim: new Date('2024-12-31'),
+        });
+    });
+
+    it('getAcompanhamento delegates to GetOsAcompanhamentoUseCase', async () => {
+        await controller.getAcompanhamento('os-1');
+        expect(getAcompanhamentoUC.execute).toHaveBeenCalledWith('os-1');
     });
 });

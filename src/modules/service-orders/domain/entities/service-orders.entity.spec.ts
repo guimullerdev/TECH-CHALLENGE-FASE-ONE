@@ -269,6 +269,20 @@ describe('OrdemDeServico entity', () => {
     });
 });
 
+describe('OrdemDeServico.toJSON()', () => {
+    it('returns a plain object with all fields', () => {
+        const os = baseOS();
+        const json = os.toJSON();
+        expect(json.id).toBe(os.id);
+        expect(json.numero).toBe('OS-001');
+        expect(json.clienteId).toBe('cliente-1');
+        expect(json.veiculoId).toBe('veiculo-1');
+        expect(json.status).toBe(StatusOS.RECEBIDA);
+        expect(json.servicos).toEqual([]);
+        expect(json.pecas).toEqual([]);
+    });
+});
+
 describe('InsufficientStockError', () => {
     it('sets name and message correctly', () => {
         const err = new InsufficientStockError('peca-1', 5, 2);

@@ -46,7 +46,7 @@ describe('ServiceOrderMapper', () => {
             expect(os.servicos[0].precoUnitario).toBe(100);
         });
 
-        it('maps osItensPeca correctly', () => {
+        it('maps osItensPeca correctly with utilizada=false', () => {
             const raw = {
                 ...baseRaw,
                 osItensServico: [],
@@ -66,6 +66,53 @@ describe('ServiceOrderMapper', () => {
             expect(os.pecas[0].status).toBe('reservada');
         });
 
+        it('maps osItensPeca with utilizada=true to status utilizada', () => {
+            const raw = {
+                ...baseRaw,
+                osItensServico: [],
+                osItensPeca: [{
+                    id: 'item-p-2',
+                    pecaId: 'peca-2',
+                    quantidade: 1,
+                    precoUnitario: new Prisma.Decimal('30.00'),
+                    utilizada: true,
+                }],
+            };
+            const os = ServiceOrderMapper.toDomain(raw);
+            expect(os.pecas[0].status).toBe('utilizada');
+        });
+
+        it('maps osItensServico with inicioExec+fimExec to status realizado', () => {
+            const raw = {
+                ...baseRaw,
+                osItensServico: [{
+                    id: 'item-s-2',
+                    servicoId: 'svc-2',
+                    precoUnitario: new Prisma.Decimal('200.00'),
+                    inicioExec: new Date('2024-01-01T08:00:00'),
+                    fimExec: new Date('2024-01-01T10:00:00'),
+                }],
+                osItensPeca: [],
+            };
+            const os = ServiceOrderMapper.toDomain(raw);
+            expect(os.servicos[0].status).toBe('realizado');
+            expect(os.servicos[0].inicioExec).toEqual(new Date('2024-01-01T08:00:00'));
+            expect(os.servicos[0].fimExec).toEqual(new Date('2024-01-01T10:00:00'));
+        });
+
+        it('maps null descricaoProblema to undefined', () => {
+            const raw = { ...baseRaw, descricaoProblema: null, osItensServico: [], osItensPeca: [] };
+            const os = ServiceOrderMapper.toDomain(raw);
+            expect(os.descricaoProblema).toBeUndefined();
+        });
+
+        it('maps non-null dataFechamento', () => {
+            const dataFechamento = new Date('2024-06-01');
+            const raw = { ...baseRaw, dataFechamento, osItensServico: [], osItensPeca: [] };
+            const os = ServiceOrderMapper.toDomain(raw);
+            expect(os.dataFechamento).toEqual(dataFechamento);
+        });
+
         it('uses empty arrays when items are undefined', () => {
             const os = ServiceOrderMapper.toDomain(baseRaw as any);
             expect(os.servicos).toEqual([]);
@@ -82,6 +129,19 @@ describe('ServiceOrderMapper', () => {
             expect(prisma.clienteId).toBe('cliente-1');
             expect(prisma.veiculoId).toBe('veiculo-1');
             expect(prisma.descricaoProblema).toBe('Barulho ao frear');
+        });
+
+        it('maps undefined descricaoProblema to null', () => {
+            const os = ServiceOrderMapper.toDomain({ ...baseRaw, descricaoProblema: null, osItensServico: [], osItensPeca: [] });
+            const prisma = ServiceOrderMapper.toPrisma(os);
+            expect(prisma.descricaoProblema).toBeNull();
+        });
+
+        it('maps defined dataFechamento correctly', () => {
+            const dataFechamento = new Date('2024-06-15');
+            const os = ServiceOrderMapper.toDomain({ ...baseRaw, status: 'ENTREGUE' as const, dataFechamento, osItensServico: [], osItensPeca: [] });
+            const prisma = ServiceOrderMapper.toPrisma(os);
+            expect(prisma.dataFechamento).toEqual(dataFechamento);
         });
     });
 });

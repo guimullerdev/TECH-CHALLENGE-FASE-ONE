@@ -107,4 +107,28 @@ describe('HttpExceptionFilter', () => {
 
         expect(res.status).toHaveBeenCalledWith(500);
     });
+
+    it('uses exception.message when object body has no message field', () => {
+        const res = makeResponse();
+        const host = makeHost(res) as any;
+        const exception = new HttpException({ error: 'Custom Error' }, HttpStatus.BAD_REQUEST);
+
+        filter.catch(exception, host);
+
+        const body = (res._json.mock.calls[0][0] as any);
+        expect(body.message).toBeDefined();
+        expect(body.error).toBe('Custom Error');
+    });
+
+    it('returns Unknown for unrecognized status code', () => {
+        const res = makeResponse();
+        const host = makeHost(res) as any;
+        const exception = new HttpException('Custom status', 999 as any);
+
+        filter.catch(exception, host);
+
+        expect(res.status).toHaveBeenCalledWith(999);
+        const body = res._json.mock.calls[0][0] as any;
+        expect(body.error).toBe('Unknown');
+    });
 });

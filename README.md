@@ -4,6 +4,8 @@ Backend REST API for a mechanical workshop management system. Manages service or
 
 **Stack:** NestJS · Prisma 7 · PostgreSQL · Docker · Yarn
 
+> **Note:** The Docker setup in this repository is configured for **development only** (hot-reload, source volume mount). It is not intended for production use.
+
 ---
 
 ## Requirements
@@ -14,7 +16,7 @@ Backend REST API for a mechanical workshop management system. Manages service or
 
 ---
 
-## Running with Docker (recommended)
+## Running with Docker (development)
 
 ### 1. Copy the environment file
 
@@ -27,12 +29,12 @@ The defaults in `.env.example` work out of the box with the Docker Compose setup
 ### 2. Start the stack
 
 ```bash
-docker compose -f docker-compose.dev.yml up
+docker compose up
 ```
 
 This will:
 - Start a PostgreSQL 15 database on port `5432`
-- Build and start the NestJS app on port `3000`
+- Build and start the NestJS app on port `3000` with **hot-reload** enabled
 - Automatically run pending database migrations on startup
 
 The API will be available at **http://localhost:3000**
@@ -40,13 +42,13 @@ The API will be available at **http://localhost:3000**
 ### 3. Stop the stack
 
 ```bash
-docker compose -f docker-compose.dev.yml down
+docker compose down
 ```
 
 To also remove the database volume (wipes all data):
 
 ```bash
-docker compose -f docker-compose.dev.yml down -v
+docker compose down -v
 ```
 
 ---
@@ -58,7 +60,7 @@ docker compose -f docker-compose.dev.yml down -v
 Make sure a PostgreSQL instance is running and accessible. You can use the Docker DB only:
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d db
+docker compose up -d db
 ```
 
 ### 2. Copy the environment file
@@ -122,23 +124,54 @@ The API will be available at **http://localhost:3000**
 
 ---
 
+## API Documentation
+
+Swagger UI is available at **http://localhost:3000/api** when the app is running.
+
+---
+
 ## API Endpoints
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/customers` | Create a customer |
-| `POST` | `/vehicles` | Create a vehicle |
-| `GET` | `/vehicles` | List all vehicles |
-| `GET` | `/vehicles/:id` | Get a vehicle by ID |
-| `PATCH` | `/vehicles/:id` | Update a vehicle |
-| `DELETE` | `/vehicles/:id` | Delete a vehicle |
-| `POST` | `/services` | Create a service |
-| `POST` | `/parts` | Create a part |
-| `GET` | `/parts` | List all parts |
-| `GET` | `/parts/:id` | Get a part by ID |
-| `PATCH` | `/parts/:id` | Update a part |
-| `DELETE` | `/parts/:id` | Delete a part |
-| `POST` | `/service-orders` | Create a service order |
+| `POST` | `/clientes` | Create a customer |
+| `GET` | `/clientes` | List customers |
+| `GET` | `/clientes/:id` | Get a customer by ID |
+| `PUT` | `/clientes/:id` | Update a customer |
+| `PATCH` | `/clientes/:id/desativar` | Deactivate a customer |
+| `DELETE` | `/clientes/:id` | Remove a customer |
+| `POST` | `/veiculos` | Register a vehicle |
+| `GET` | `/veiculos` | List vehicles |
+| `GET` | `/veiculos/:id` | Get a vehicle by ID |
+| `PUT` | `/veiculos/:id` | Update a vehicle |
+| `PATCH` | `/veiculos/:id/desativar` | Deactivate a vehicle |
+| `DELETE` | `/veiculos/:id` | Remove a vehicle |
+| `POST` | `/servicos` | Create a service |
+| `GET` | `/servicos` | List services |
+| `GET` | `/servicos/:id` | Get a service by ID |
+| `PUT` | `/servicos/:id` | Update a service |
+| `PATCH` | `/servicos/:id/desativar` | Deactivate a service |
+| `POST` | `/pecas` | Create a part |
+| `GET` | `/pecas` | List parts |
+| `GET` | `/pecas/:id` | Get a part by ID |
+| `PUT` | `/pecas/:id` | Update a part |
+| `PATCH` | `/pecas/:id/desativar` | Deactivate a part |
+| `POST` | `/os` | Create a service order |
+| `GET` | `/os` | List service orders |
+| `GET` | `/os/:id` | Get a service order by ID |
+| `PATCH` | `/os/:id/iniciar-diagnostico` | Start diagnosis |
+| `PATCH` | `/os/:id/concluir-diagnostico` | Finish diagnosis (generates budget) |
+| `PATCH` | `/os/:id/iniciar-execucao` | Start execution |
+| `PATCH` | `/os/:id/finalizar-execucao` | Finish execution |
+| `PATCH` | `/os/:id/entregar` | Mark as delivered |
+| `POST` | `/os/:id/servicos` | Add service to order |
+| `DELETE` | `/os/:id/servicos/:itemId` | Remove service from order |
+| `PATCH` | `/os/:id/servicos/:itemId/realizar` | Record service execution |
+| `POST` | `/os/:id/pecas` | Add part to order |
+| `DELETE` | `/os/:id/pecas/:itemId` | Remove part from order |
+| `PATCH` | `/os/:id/pecas/:itemId/utilizar` | Mark part as used |
+| `GET` | `/os/metricas/tempo-medio` | Average completion time metrics |
+| `GET` | `/os/consulta` | Public order status lookup |
 
 ---
 
@@ -179,7 +212,7 @@ Create a new migration after changing `prisma/schema.prisma`:
 npx prisma migrate dev --name describe_your_change
 ```
 
-Apply existing migrations (used in production / Docker entrypoint):
+Apply existing migrations (used in Docker entrypoint):
 
 ```bash
 npx prisma migrate deploy

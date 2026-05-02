@@ -5,6 +5,7 @@ import { ServicesModule } from '../services/presentation/services.module';
 import { PartsModule } from '../parts/parts.module';
 import { EstoqueModule } from '../estoque/estoque.module';
 import { VehiclesModule } from '../vehicles/vehicles.module';
+import { CustomersModule } from '../customers/customers.module';
 
 import { ORDEM_DE_SERVICO_REPOSITORY } from './domain/repositories/service-orders.repository.interface';
 import { OrdemDeServicoPrismaRepository } from './infrastructure/repositories/service-orders-prisma.repository';
@@ -40,7 +41,7 @@ import { ORCAMENTO_REPOSITORY } from '../orcamentos/domain/repositories/orcament
 import { OrcamentoPrismaRepository } from '../orcamentos/infrastructure/repositories/orcamento-prisma.repository';
 
 @Module({
-    imports: [PrismaModule, ServicesModule, PartsModule, EstoqueModule, VehiclesModule],
+    imports: [PrismaModule, ServicesModule, PartsModule, EstoqueModule, VehiclesModule, CustomersModule],
     controllers: [ServiceOrdersController],
     providers: [
         CreateOrdemDeServicoUseCase,

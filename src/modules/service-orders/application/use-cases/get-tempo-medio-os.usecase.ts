@@ -21,12 +21,15 @@ export class GetTempoMedioOsUseCase {
     ) {}
 
     async execute(filtros?: { dataInicio?: Date; dataFim?: Date }): Promise<TempoMedioOsResponse> {
-        const todas = await this.repo.findAll({ status: StatusOS.FINALIZADA });
+        const [concluidas, entregues] = await Promise.all([
+            this.repo.findAll({ status: StatusOS.FINALIZADA }),
+            this.repo.findAll({ status: StatusOS.ENTREGUE }),
+        ]);
 
-        const finalizadas = todas.filter(os => {
+        const finalizadas = [...concluidas, ...entregues].filter(os => {
             if (!os.dataFechamento) return false;
-            if (filtros?.dataInicio && os.dataAbertura < filtros.dataInicio) return false;
-            if (filtros?.dataFim && os.dataAbertura > filtros.dataFim) return false;
+            if (filtros?.dataInicio && os.dataFechamento < filtros.dataInicio) return false;
+            if (filtros?.dataFim && os.dataFechamento > filtros.dataFim) return false;
             return true;
         });
 

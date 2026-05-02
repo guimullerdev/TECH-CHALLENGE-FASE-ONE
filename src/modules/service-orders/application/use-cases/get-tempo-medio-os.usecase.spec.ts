@@ -1,4 +1,3 @@
-import { NotFoundException } from '@nestjs/common';
 import { GetTempoMedioOsUseCase } from './get-tempo-medio-os.usecase';
 import { OrdemDeServico, StatusOS } from '../../domain/entities/service-orders.entity';
 import type { IOrdemDeServicoRepository } from '../../domain/repositories/service-orders.repository.interface';
@@ -11,13 +10,13 @@ const mockRepo = (): jest.Mocked<IOrdemDeServicoRepository> => ({
     generateNumero: jest.fn(),
 });
 
-const makeOsFinalizada = (abertura: Date, fechamento: Date) =>
+const makeOs = (abertura: Date, fechamento: Date, status = StatusOS.FINALIZADA) =>
     OrdemDeServico.restore({
         id: crypto.randomUUID(),
         numero: 'OS-001',
         clienteId: 'c-1',
         veiculoId: 'v-1',
-        status: StatusOS.FINALIZADA,
+        status,
         servicos: [],
         pecas: [],
         historicoStatus: [],
@@ -27,10 +26,22 @@ const makeOsFinalizada = (abertura: Date, fechamento: Date) =>
         updatedAt: fechamento,
     });
 
+const setupFindAll = (
+    repo: jest.Mocked<IOrdemDeServicoRepository>,
+    finalizadas: OrdemDeServico[],
+    entregues: OrdemDeServico[] = [],
+) => {
+    repo.findAll.mockImplementation(async (filters) => {
+        if (filters?.status === StatusOS.FINALIZADA) return finalizadas;
+        if (filters?.status === StatusOS.ENTREGUE) return entregues;
+        return [];
+    });
+};
+
 describe('GetTempoMedioOsUseCase', () => {
     it('returns zeros when no finalized OS exist', async () => {
         const repo = mockRepo();
-        repo.findAll.mockResolvedValue([]);
+        setupFindAll(repo, []);
 
         const useCase = new GetTempoMedioOsUseCase(repo as any);
         const result = await useCase.execute();
@@ -44,7 +55,7 @@ describe('GetTempoMedioOsUseCase', () => {
         const repo = mockRepo();
         const abertura = new Date('2024-01-01T08:00:00Z');
         const fechamento = new Date('2024-01-01T10:00:00Z'); // 2h
-        repo.findAll.mockResolvedValue([makeOsFinalizada(abertura, fechamento)]);
+        setupFindAll(repo, [makeOs(abertura, fechamento)]);
 
         const useCase = new GetTempoMedioOsUseCase(repo as any);
         const result = await useCase.execute();
@@ -56,15 +67,9 @@ describe('GetTempoMedioOsUseCase', () => {
 
     it('averages multiple OS durations', async () => {
         const repo = mockRepo();
-        const os1 = makeOsFinalizada(
-            new Date('2024-01-01T08:00:00Z'),
-            new Date('2024-01-01T10:00:00Z'), // 2h
-        );
-        const os2 = makeOsFinalizada(
-            new Date('2024-01-02T08:00:00Z'),
-            new Date('2024-01-02T12:00:00Z'), // 4h
-        );
-        repo.findAll.mockResolvedValue([os1, os2]);
+        const os1 = makeOs(new Date('2024-01-01T08:00:00Z'), new Date('2024-01-01T10:00:00Z')); // 2h
+        const os2 = makeOs(new Date('2024-01-02T08:00:00Z'), new Date('2024-01-02T12:00:00Z')); // 4h
+        setupFindAll(repo, [os1, os2]);
 
         const useCase = new GetTempoMedioOsUseCase(repo as any);
         const result = await useCase.execute();
@@ -72,6 +77,23 @@ describe('GetTempoMedioOsUseCase', () => {
         expect(result.totalOsConsideradas).toBe(2);
         expect(result.tempoMedioEmHoras).toBe(3); // (2+4)/2
         expect(result.tempoMedioEmMinutos).toBe(180);
+    });
+
+    it('includes ENTREGUE orders in the calculation', async () => {
+        const repo = mockRepo();
+        const finalizada = makeOs(new Date('2024-01-01T08:00:00Z'), new Date('2024-01-01T10:00:00Z')); // 2h
+        const entregue = makeOs(
+            new Date('2024-01-02T08:00:00Z'),
+            new Date('2024-01-02T12:00:00Z'),
+            StatusOS.ENTREGUE,
+        ); // 4h
+        setupFindAll(repo, [finalizada], [entregue]);
+
+        const useCase = new GetTempoMedioOsUseCase(repo as any);
+        const result = await useCase.execute();
+
+        expect(result.totalOsConsideradas).toBe(2);
+        expect(result.tempoMedioEmHoras).toBe(3); // (2+4)/2
     });
 
     it('excludes OS without dataFechamento', async () => {
@@ -89,11 +111,8 @@ describe('GetTempoMedioOsUseCase', () => {
             createdAt: new Date(),
             updatedAt: new Date(),
         });
-        const comFechamento = makeOsFinalizada(
-            new Date('2024-01-02T08:00:00Z'),
-            new Date('2024-01-02T09:00:00Z'), // 1h
-        );
-        repo.findAll.mockResolvedValue([semFechamento, comFechamento]);
+        const comFechamento = makeOs(new Date('2024-01-02T08:00:00Z'), new Date('2024-01-02T09:00:00Z')); // 1h
+        setupFindAll(repo, [semFechamento, comFechamento]);
 
         const useCase = new GetTempoMedioOsUseCase(repo as any);
         const result = await useCase.execute();
@@ -102,17 +121,13 @@ describe('GetTempoMedioOsUseCase', () => {
         expect(result.tempoMedioEmHoras).toBe(1);
     });
 
-    it('applies dataInicio filter', async () => {
+    it('applies dataInicio filter by dataFechamento', async () => {
         const repo = mockRepo();
-        const antiga = makeOsFinalizada(
-            new Date('2024-01-01T08:00:00Z'),
-            new Date('2024-01-01T10:00:00Z'),
-        );
-        const recente = makeOsFinalizada(
-            new Date('2024-06-01T08:00:00Z'),
-            new Date('2024-06-01T12:00:00Z'), // 4h
-        );
-        repo.findAll.mockResolvedValue([antiga, recente]);
+        // fechamento em jan/2024 — deve ser excluída
+        const antiga = makeOs(new Date('2024-01-01T08:00:00Z'), new Date('2024-01-01T10:00:00Z'));
+        // fechamento em jun/2024 — deve ser incluída
+        const recente = makeOs(new Date('2024-06-01T08:00:00Z'), new Date('2024-06-01T12:00:00Z')); // 4h
+        setupFindAll(repo, [antiga, recente]);
 
         const useCase = new GetTempoMedioOsUseCase(repo as any);
         const result = await useCase.execute({ dataInicio: new Date('2024-03-01') });
@@ -121,17 +136,13 @@ describe('GetTempoMedioOsUseCase', () => {
         expect(result.tempoMedioEmHoras).toBe(4);
     });
 
-    it('applies dataFim filter', async () => {
+    it('applies dataFim filter by dataFechamento', async () => {
         const repo = mockRepo();
-        const antiga = makeOsFinalizada(
-            new Date('2024-01-01T08:00:00Z'),
-            new Date('2024-01-01T10:00:00Z'), // 2h
-        );
-        const recente = makeOsFinalizada(
-            new Date('2024-06-01T08:00:00Z'),
-            new Date('2024-06-01T12:00:00Z'),
-        );
-        repo.findAll.mockResolvedValue([antiga, recente]);
+        // fechamento em jan/2024 — deve ser incluída
+        const antiga = makeOs(new Date('2024-01-01T08:00:00Z'), new Date('2024-01-01T10:00:00Z')); // 2h
+        // fechamento em jun/2024 — deve ser excluída
+        const recente = makeOs(new Date('2024-06-01T08:00:00Z'), new Date('2024-06-01T12:00:00Z'));
+        setupFindAll(repo, [antiga, recente]);
 
         const useCase = new GetTempoMedioOsUseCase(repo as any);
         const result = await useCase.execute({ dataFim: new Date('2024-03-01') });
@@ -142,7 +153,7 @@ describe('GetTempoMedioOsUseCase', () => {
 
     it('includes filter dates in response', async () => {
         const repo = mockRepo();
-        repo.findAll.mockResolvedValue([]);
+        setupFindAll(repo, []);
 
         const useCase = new GetTempoMedioOsUseCase(repo as any);
         const dataInicio = new Date('2024-01-01');

@@ -1,4 +1,4 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 
 import { ORDEM_DE_SERVICO_REPOSITORY, IOrdemDeServicoRepository } from '../../domain/repositories/service-orders.repository.interface';
 import { SERVICO_REPOSITORY, IServicoRepository } from '../../../services/domain/repositories/services.repository';
@@ -19,6 +19,7 @@ export class AddServicoToOsUseCase {
 
         const servico = await this.servicoRepo.findById(servicoId);
         if (!servico) throw new NotFoundException(`Serviço ${servicoId} não encontrado`);
+        if (!servico.ativo) throw new UnprocessableEntityException('Não é possível adicionar um serviço inativo à OS');
 
         let updated: OrdemDeServico;
         try {

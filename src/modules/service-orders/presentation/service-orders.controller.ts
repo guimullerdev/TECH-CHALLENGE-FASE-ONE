@@ -102,15 +102,6 @@ export class ServiceOrdersController {
         return this.consultaPublicaUseCase.execute(numero, documento);
     }
 
-    @Get(':id')
-    @ApiOperation({ summary: 'Buscar OS por ID' })
-    @ApiParam({ name: 'id', description: 'UUID da OS' })
-    @ApiResponse({ status: 200, description: 'OS encontrada com itens' })
-    @ApiResponse({ status: 404, description: 'OS não encontrada' })
-    findOne(@Param('id') id: string) {
-        return this.getOsUseCase.execute(id);
-    }
-
     @Get('metricas/tempo-medio')
     @ApiOperation({ summary: 'Tempo médio de execução de OS finalizadas' })
     @ApiQuery({ name: 'dataInicio', required: false, description: 'Filtro: data de abertura a partir de (ISO 8601)' })
@@ -124,6 +115,15 @@ export class ServiceOrdersController {
             dataInicio: dataInicio ? new Date(dataInicio) : undefined,
             dataFim: dataFim ? new Date(dataFim) : undefined,
         });
+    }
+
+    @Get(':id')
+    @ApiOperation({ summary: 'Buscar OS por ID' })
+    @ApiParam({ name: 'id', description: 'UUID da OS' })
+    @ApiResponse({ status: 200, description: 'OS encontrada com itens' })
+    @ApiResponse({ status: 404, description: 'OS não encontrada' })
+    findOne(@Param('id') id: string) {
+        return this.getOsUseCase.execute(id);
     }
 
     @Get(':id/status')

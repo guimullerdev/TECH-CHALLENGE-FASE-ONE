@@ -75,8 +75,8 @@ describe('VehiclesController', () => {
         expect(updateUC.execute).toHaveBeenCalledWith('v-1', { marca: 'Honda' });
     });
 
-    it('deactivate delegates to DeactivateVeiculoUseCase', async () => {
-        await controller.deactivate('v-1');
+    it('remove delegates to DeactivateVeiculoUseCase', async () => {
+        await controller.remove('v-1');
         expect(deactivateUC.execute).toHaveBeenCalledWith('v-1');
     });
 });

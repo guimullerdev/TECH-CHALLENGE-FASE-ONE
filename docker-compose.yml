@@ -20,7 +20,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     container_name: oficina_app
     restart: unless-stopped
     depends_on:

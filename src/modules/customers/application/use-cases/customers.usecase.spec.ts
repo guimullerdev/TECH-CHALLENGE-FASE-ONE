@@ -1,4 +1,4 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { CreateClienteUseCase } from './create-customers.usecase';
 import { GetClienteUseCase } from './get-customers.usecase';
 import { UpdateClienteUseCase } from './update-customers.usecase';
@@ -148,14 +148,21 @@ describe('UpdateClienteUseCase', () => {
 });
 
 // ─── DeactivateClienteUseCase ────────────────────────────────────────────────
+const mockPrisma = () => ({
+    ordemDeServico: {
+        findFirst: jest.fn().mockResolvedValue(null),
+    },
+});
+
 describe('DeactivateClienteUseCase', () => {
     it('deactivates and returns cliente', async () => {
         const repo = mockRepo();
+        const prisma = mockPrisma();
         const cliente = makeCliente();
         repo.findById.mockResolvedValue(cliente);
         repo.update.mockImplementation(async (c) => c);
 
-        const useCase = new DeactivateClienteUseCase(repo as any);
+        const useCase = new DeactivateClienteUseCase(repo as any, prisma as any);
         const result = await useCase.execute('c-1');
 
         expect(repo.update).toHaveBeenCalledTimes(1);
@@ -164,9 +171,21 @@ describe('DeactivateClienteUseCase', () => {
 
     it('throws NotFoundException if cliente not found', async () => {
         const repo = mockRepo();
+        const prisma = mockPrisma();
         repo.findById.mockResolvedValue(null);
 
-        const useCase = new DeactivateClienteUseCase(repo as any);
+        const useCase = new DeactivateClienteUseCase(repo as any, prisma as any);
         await expect(useCase.execute('missing')).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws UnprocessableEntityException if cliente has open OS', async () => {
+        const repo = mockRepo();
+        const prisma = mockPrisma();
+        const cliente = makeCliente();
+        repo.findById.mockResolvedValue(cliente);
+        prisma.ordemDeServico.findFirst.mockResolvedValue({ numero: 'OS-2024-000001' });
+
+        const useCase = new DeactivateClienteUseCase(repo as any, prisma as any);
+        await expect(useCase.execute('c-1')).rejects.toThrow(UnprocessableEntityException);
     });
 });

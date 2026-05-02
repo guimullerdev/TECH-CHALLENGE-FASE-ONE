@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 
 import { CreateClienteUseCase } from '../application/use-cases/create-customers.usecase';
@@ -60,15 +60,6 @@ export class CustomersController {
     @ApiResponse({ status: 404, description: 'Cliente não encontrado' })
     update(@Param('id') id: string, @Body() dto: UpdateClienteDto) {
         return this.updateClienteUseCase.execute(id, dto);
-    }
-
-    @Patch(':id/desativar')
-    @ApiOperation({ summary: 'Desativar cliente' })
-    @ApiParam({ name: 'id', description: 'UUID do cliente' })
-    @ApiResponse({ status: 200, description: 'Cliente desativado' })
-    @ApiResponse({ status: 404, description: 'Cliente não encontrado' })
-    deactivate(@Param('id') id: string) {
-        return this.deactivateClienteUseCase.execute(id);
     }
 
     @Delete(':id')

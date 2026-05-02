@@ -68,8 +68,8 @@ describe('CustomersController', () => {
         expect(updateUC.execute).toHaveBeenCalledWith('c-1', { nome: 'João' });
     });
 
-    it('deactivate delegates to DeactivateClienteUseCase', async () => {
-        await controller.deactivate('c-1');
+    it('remove delegates to DeactivateClienteUseCase', async () => {
+        await controller.remove('c-1');
         expect(deactivateUC.execute).toHaveBeenCalledWith('c-1');
     });
 });

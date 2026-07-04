@@ -6,6 +6,20 @@ import { OrdemDeServico, StatusOS, OsItemServico, OsItemPeca } from '../../domai
 import { ServiceOrderMapper } from '../mappers/service-orders.mapper';
 import { PrismaService } from 'src/prisma/prisma.service';
 
+const STATUS_PRIORITY: Partial<Record<StatusOS, number>> = {
+    [StatusOS.EM_EXECUCAO]: 1,
+    [StatusOS.AGUARDANDO_APROVACAO]: 2,
+    [StatusOS.EM_DIAGNOSTICO]: 3,
+    [StatusOS.RECEBIDA]: 4,
+};
+
+function byStatusPriorityThenOldest(a: OrdemDeServico, b: OrdemDeServico): number {
+    const pa = STATUS_PRIORITY[a.status] ?? 99;
+    const pb = STATUS_PRIORITY[b.status] ?? 99;
+    if (pa !== pb) return pa - pb;
+    return a.dataAbertura.getTime() - b.dataAbertura.getTime();
+}
+
 const includeItems = {
     osItensServico: true,
     osItensPeca: true,
@@ -21,17 +35,18 @@ export class OrdemDeServicoPrismaRepository implements IOrdemDeServicoRepository
         return ServiceOrderMapper.toDomain(raw);
     }
 
-    async findAll(filters?: { status?: StatusOS; clienteId?: string; veiculoId?: string }): Promise<OrdemDeServico[]> {
+    async findAll(filters?: { status?: StatusOS; clienteId?: string; veiculoId?: string; incluirArquivadas?: boolean }): Promise<OrdemDeServico[]> {
         const raws = await this.prisma.ordemDeServico.findMany({
             where: {
                 ...(filters?.status ? { status: filters.status as any } : {}),
                 ...(filters?.clienteId ? { clienteId: filters.clienteId } : {}),
                 ...(filters?.veiculoId ? { veiculoId: filters.veiculoId } : {}),
+                ...(filters?.incluirArquivadas ? {} : { arquivada: false }),
             },
             include: includeItems,
-            orderBy: { dataAbertura: 'desc' },
+            orderBy: { dataAbertura: 'asc' },
         });
-        return raws.map(ServiceOrderMapper.toDomain);
+        return raws.map(ServiceOrderMapper.toDomain).sort(byStatusPriorityThenOldest);
     }
 
     async create(os: OrdemDeServico): Promise<OrdemDeServico> {
@@ -48,6 +63,7 @@ export class OrdemDeServicoPrismaRepository implements IOrdemDeServicoRepository
                 where: { id: os.id },
                 data: {
                     status: os.status as any,
+                    arquivada: os.arquivada,
                     descricaoProblema: os.descricaoProblema ?? null,
                     dataFechamento: os.dataFechamento ?? null,
                     updatedAt: os.updatedAt,

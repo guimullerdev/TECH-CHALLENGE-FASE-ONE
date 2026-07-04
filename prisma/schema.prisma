@@ -147,6 +147,7 @@ model OrdemDeServico {
   clienteId         String    @map("cliente_id")
   veiculoId         String    @map("veiculo_id")
   status            StatusOS  @default(RECEBIDA)
+  arquivada         Boolean   @default(false)
   descricaoProblema String?   @map("descricao_problema")
   dataAbertura      DateTime  @default(now()) @map("data_abertura")
   dataFechamento    DateTime? @map("data_fechamento")

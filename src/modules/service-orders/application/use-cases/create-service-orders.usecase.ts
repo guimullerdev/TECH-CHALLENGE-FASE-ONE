@@ -5,6 +5,8 @@ import { VEICULO_REPOSITORY, IVeiculoRepository } from '../../../vehicles/domain
 import { CLIENTE_REPOSITORY, IClienteRepository } from '../../../customers/domain/repositories/customers.repository.interface';
 import { OrdemDeServico } from '../../domain/entities/service-orders.entity';
 import { CreateOsDto } from '../dto/create-service-orders.dto';
+import { AddServicoToOsUseCase } from './add-service-to-order.usecase';
+import { AddPecaToOsUseCase } from './add-part-to-order.usecase';
 
 @Injectable()
 export class CreateOrdemDeServicoUseCase {
@@ -15,6 +17,8 @@ export class CreateOrdemDeServicoUseCase {
         private readonly veiculoRepo: IVeiculoRepository,
         @Inject(CLIENTE_REPOSITORY)
         private readonly clienteRepo: IClienteRepository,
+        private readonly addServicoUseCase: AddServicoToOsUseCase,
+        private readonly addPecaUseCase: AddPecaToOsUseCase,
     ) {}
 
     async execute(dto: CreateOsDto): Promise<OrdemDeServico> {
@@ -44,6 +48,16 @@ export class CreateOrdemDeServicoUseCase {
             veiculoId: dto.veiculoId,
             descricaoProblema: dto.descricaoProblema,
         });
-        return this.repo.create(os);
+        let saved = await this.repo.create(os);
+
+        for (const s of dto.servicos ?? []) {
+            saved = await this.addServicoUseCase.execute(saved.id, s.servicoId);
+        }
+
+        for (const p of dto.pecas ?? []) {
+            saved = await this.addPecaUseCase.execute(saved.id, p.pecaId, p.quantidade);
+        }
+
+        return saved;
     }
 }

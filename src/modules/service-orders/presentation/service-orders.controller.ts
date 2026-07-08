@@ -5,12 +5,14 @@ import {
     Get,
     HttpCode,
     HttpStatus,
+    Ip,
     Param,
     Patch,
     Post,
     Query,
+    UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 
 import { CreateOrdemDeServicoUseCase } from '../application/use-cases/create-service-orders.usecase';
 import { GetOrdemDeServicoUseCase } from '../application/use-cases/get-service-orders.usecase';
@@ -35,6 +37,9 @@ import { CreateOsDto } from '../application/dto/create-service-orders.dto';
 import { AddServicoDto } from '../application/dto/add-service-to-order.dto';
 import { AddPecaDto } from '../application/dto/add-part-to-order.dto';
 import { RealizarServicoDto } from '../application/dto/realizar-servico.dto';
+import { WebhookNotificacaoDto } from '../application/dto/webhook-notificacao.dto';
+import { ProcessarWebhookNotificacaoUseCase } from '../application/use-cases/processar-webhook-notificacao.usecase';
+import { WebhookAuthGuard } from './guards/webhook-auth.guard';
 import { StatusOS } from '../domain/entities/service-orders.entity';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../auth/domain/enums/user-role.enum';
@@ -63,7 +68,22 @@ export class ServiceOrdersController {
         private readonly getAcompanhamentoUseCase: GetOsAcompanhamentoUseCase,
         private readonly getTempoMedioUseCase: GetTempoMedioOsUseCase,
         private readonly consultaPublicaUseCase: ConsultaPublicaOsUseCase,
+        private readonly processarWebhookUseCase: ProcessarWebhookNotificacaoUseCase,
     ) {}
+
+    @Post('webhook/notificacao')
+    @HttpCode(HttpStatus.OK)
+    @Public()
+    @UseGuards(WebhookAuthGuard)
+    @ApiOperation({ summary: 'Webhook de notificação externa — aprova ou reprova orçamento de uma OS' })
+    @ApiHeader({ name: 'Authorization', description: 'Bearer <WEBHOOK_SECRET>', required: true })
+    @ApiResponse({ status: 200, description: 'Ação aplicada ou ignorada (idempotente)' })
+    @ApiResponse({ status: 401, description: 'Token inválido ou ausente' })
+    @ApiResponse({ status: 404, description: 'OS não encontrada' })
+    @ApiResponse({ status: 422, description: 'OS não está em AGUARDANDO_APROVACAO ou ação conflitante' })
+    webhookNotificacao(@Body() dto: WebhookNotificacaoDto, @Ip() ip: string) {
+        return this.processarWebhookUseCase.execute(dto, ip);
+    }
 
     @Post()
     @HttpCode(HttpStatus.CREATED)

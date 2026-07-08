@@ -35,8 +35,11 @@ import { RejectBudgetUseCase } from './application/use-cases/reject-budget.useca
 import { GetOsAcompanhamentoUseCase } from './application/use-cases/get-os-acompanhamento.usecase';
 import { GetTempoMedioOsUseCase } from './application/use-cases/get-tempo-medio-os.usecase';
 import { ConsultaPublicaOsUseCase } from './application/use-cases/consulta-publica-os.usecase';
+import { ProcessarWebhookNotificacaoUseCase } from './application/use-cases/processar-webhook-notificacao.usecase';
 import { GerarOrcamentoUseCase } from '../orcamentos/application/use-cases/gerar-orcamento.usecase';
 import { GetOrcamentoUseCase } from '../orcamentos/application/use-cases/get-orcamento.usecase';
+import { AprovarOrcamentoUseCase } from '../orcamentos/application/use-cases/aprovar-orcamento.usecase';
+import { ReprovarOrcamentoUseCase } from '../orcamentos/application/use-cases/reprovar-orcamento.usecase';
 import { ORCAMENTO_REPOSITORY } from '../orcamentos/domain/repositories/orcamento.repository.interface';
 import { OrcamentoPrismaRepository } from '../orcamentos/infrastructure/repositories/orcamento-prisma.repository';
 
@@ -66,8 +69,11 @@ import { OrcamentoPrismaRepository } from '../orcamentos/infrastructure/reposito
         GetOsAcompanhamentoUseCase,
         GetTempoMedioOsUseCase,
         ConsultaPublicaOsUseCase,
+        ProcessarWebhookNotificacaoUseCase,
         GerarOrcamentoUseCase,
         GetOrcamentoUseCase,
+        AprovarOrcamentoUseCase,
+        ReprovarOrcamentoUseCase,
         {
             provide: ORDEM_DE_SERVICO_REPOSITORY,
             useClass: OrdemDeServicoPrismaRepository,

@@ -21,7 +21,6 @@ const makeOs = (status: StatusOS): OrdemDeServico =>
     clienteId: 'c-1',
     veiculoId: 'v-1',
     status,
-    arquivada: false,
     servicos: [],
     pecas: [],
     historicoStatus: [],

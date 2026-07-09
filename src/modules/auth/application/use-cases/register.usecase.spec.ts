@@ -15,16 +15,21 @@ const mockJwt = () => ({
     signAsync: jest.fn().mockResolvedValue('token'),
 });
 
+const mockConfig = () => ({
+    get: jest.fn(),
+});
+
 describe('RegisterUseCase', () => {
     it('creates a user and returns tokens', async () => {
         const repo = mockRepo();
         const jwt = mockJwt();
+        const config = mockConfig();
         repo.findByEmail.mockResolvedValue(null);
         const user = User.restore({ id: 'u-1', email: 'a@b.com', passwordHash: 'hash', refreshTokenHash: null, createdAt: new Date() });
         repo.create.mockResolvedValue(user);
         repo.updateRefreshToken.mockResolvedValue();
 
-        const useCase = new RegisterUseCase(repo as any, jwt as any);
+        const useCase = new RegisterUseCase(repo as any, jwt as any, config as any);
         const result = await useCase.execute({ email: 'a@b.com', password: 'pass123' });
 
         expect(repo.findByEmail).toHaveBeenCalledWith('a@b.com');
@@ -36,10 +41,11 @@ describe('RegisterUseCase', () => {
     it('throws ConflictException if email already exists', async () => {
         const repo = mockRepo();
         const jwt = mockJwt();
+        const config = mockConfig();
         const user = User.restore({ id: 'u-1', email: 'a@b.com', passwordHash: 'hash', refreshTokenHash: null, createdAt: new Date() });
         repo.findByEmail.mockResolvedValue(user);
 
-        const useCase = new RegisterUseCase(repo as any, jwt as any);
+        const useCase = new RegisterUseCase(repo as any, jwt as any, config as any);
         await expect(useCase.execute({ email: 'a@b.com', password: 'pass123' })).rejects.toThrow(ConflictException);
     });
 });

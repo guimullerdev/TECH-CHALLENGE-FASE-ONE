@@ -1,0 +1,50 @@
+# Migrations run via entrypoint.sh (`prisma migrate deploy`) on every pod start,
+# per PRÉ-REQ 2 in dev-plan.md. `prisma migrate deploy` is safe under concurrent
+# execution (advisory locking), so this works with multiple replicas; the CI/CD
+# pipeline (item 6) will add an explicit `deploy-db` stage documenting this step.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oficina-api
+  labels:
+    app: oficina-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: oficina-api
+  template:
+    metadata:
+      labels:
+        app: oficina-api
+    spec:
+      containers:
+        - name: oficina-api
+          image: ghcr.io/guimullerdev/tech-challenge-fase-one:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: oficina-api-config
+            - secretRef:
+                name: oficina-api-secret
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /api-json
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api-json
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 20

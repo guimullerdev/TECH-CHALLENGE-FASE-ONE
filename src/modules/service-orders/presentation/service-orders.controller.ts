@@ -9,6 +9,8 @@ import {
     Patch,
     Post,
     Query,
+    ParseBoolPipe,
+    DefaultValuePipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 
@@ -75,17 +77,19 @@ export class ServiceOrdersController {
     }
 
     @Get()
-    @ApiOperation({ summary: 'Listar ordens de serviço com filtros opcionais' })
+    @ApiOperation({ summary: 'Listar ordens de serviço com filtros opcionais. Por padrão exclui OS arquivadas (FINALIZADA/ENTREGUE). Ordenadas por prioridade: EM_EXECUCAO > AGUARDANDO_APROVACAO > EM_DIAGNOSTICO > RECEBIDA, mais antigas primeiro dentro de cada grupo.' })
     @ApiQuery({ name: 'status', required: false, enum: StatusOS })
     @ApiQuery({ name: 'clienteId', required: false })
     @ApiQuery({ name: 'veiculoId', required: false })
-    @ApiResponse({ status: 200, description: 'Lista de OS' })
+    @ApiQuery({ name: 'incluirArquivadas', required: false, type: Boolean, description: 'Se true, inclui OS FINALIZADA e ENTREGUE na listagem' })
+    @ApiResponse({ status: 200, description: 'Lista de OS ordenada por prioridade de status' })
     findAll(
         @Query('status') status?: StatusOS,
         @Query('clienteId') clienteId?: string,
         @Query('veiculoId') veiculoId?: string,
+        @Query('incluirArquivadas', new DefaultValuePipe(false), ParseBoolPipe) incluirArquivadas?: boolean,
     ) {
-        return this.getOsUseCase.executeAll({ status, clienteId, veiculoId });
+        return this.getOsUseCase.executeAll({ status, clienteId, veiculoId, incluirArquivadas });
     }
 
     @Get('consulta')

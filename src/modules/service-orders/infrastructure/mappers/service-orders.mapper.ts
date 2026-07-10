@@ -14,6 +14,7 @@ type PrismaOSFull = {
     clienteId: string;
     veiculoId: string;
     status: StatusOS;
+    arquivada: boolean;
     descricaoProblema: string | null;
     dataAbertura: Date;
     dataFechamento: Date | null;
@@ -60,6 +61,7 @@ export class ServiceOrderMapper {
             clienteId: raw.clienteId,
             veiculoId: raw.veiculoId,
             status: raw.status as unknown as DomainStatusOS,
+            arquivada: raw.arquivada,
             descricaoProblema: raw.descricaoProblema ?? undefined,
             servicos,
             pecas,
@@ -78,6 +80,7 @@ export class ServiceOrderMapper {
             clienteId: os.clienteId,
             veiculoId: os.veiculoId,
             status: os.status as unknown as StatusOS,
+            arquivada: os.arquivada,
             descricaoProblema: os.descricaoProblema ?? null,
             dataAbertura: os.dataAbertura,
             dataFechamento: os.dataFechamento ?? null,

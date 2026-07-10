@@ -16,7 +16,7 @@ export class GetOrdemDeServicoUseCase {
         return os;
     }
 
-    async executeAll(filters?: { status?: StatusOS; clienteId?: string; veiculoId?: string }): Promise<OrdemDeServico[]> {
+    async executeAll(filters?: { status?: StatusOS; clienteId?: string; veiculoId?: string; incluirArquivadas?: boolean }): Promise<OrdemDeServico[]> {
         return this.repo.findAll(filters);
     }
 }

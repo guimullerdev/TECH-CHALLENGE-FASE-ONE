@@ -270,7 +270,7 @@ describe('OrdemDeServico entity', () => {
 });
 
 describe('OrdemDeServico.toJSON()', () => {
-    it('returns a plain object with all fields', () => {
+    it('returns a plain object with all fields including arquivada', () => {
         const os = baseOS();
         const json = os.toJSON();
         expect(json.id).toBe(os.id);
@@ -278,8 +278,42 @@ describe('OrdemDeServico.toJSON()', () => {
         expect(json.clienteId).toBe('cliente-1');
         expect(json.veiculoId).toBe('veiculo-1');
         expect(json.status).toBe(StatusOS.RECEBIDA);
+        expect(json.arquivada).toBe(false);
         expect(json.servicos).toEqual([]);
         expect(json.pecas).toEqual([]);
+    });
+});
+
+describe('arquivada flag', () => {
+    it('starts as false on create()', () => {
+        expect(baseOS().arquivada).toBe(false);
+    });
+
+    it('is set to true when finalizarExecucao()', () => {
+        const os = baseOS()
+            .iniciarDiagnostico().concluirDiagnostico()
+            .aprovarOrcamento().iniciarExecucao().finalizarExecucao();
+        expect(os.arquivada).toBe(true);
+        expect(os.status).toBe(StatusOS.FINALIZADA);
+    });
+
+    it('is set to true when entregar()', () => {
+        const os = baseOS()
+            .iniciarDiagnostico().concluirDiagnostico()
+            .aprovarOrcamento().iniciarExecucao().finalizarExecucao().entregar();
+        expect(os.arquivada).toBe(true);
+        expect(os.status).toBe(StatusOS.ENTREGUE);
+    });
+
+    it('remains false through all intermediate transitions', () => {
+        const stages = [
+            baseOS(),
+            baseOS().iniciarDiagnostico(),
+            baseOS().iniciarDiagnostico().concluirDiagnostico(),
+            baseOS().iniciarDiagnostico().concluirDiagnostico().aprovarOrcamento(),
+            baseOS().iniciarDiagnostico().concluirDiagnostico().aprovarOrcamento().iniciarExecucao(),
+        ];
+        stages.forEach(os => expect(os.arquivada).toBe(false));
     });
 });
 

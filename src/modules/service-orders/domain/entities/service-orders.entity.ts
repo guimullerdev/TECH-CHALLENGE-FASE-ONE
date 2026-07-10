@@ -36,6 +36,7 @@ export interface OrdemDeServicoProps {
     veiculoId: string;
     orcamentoId?: string;
     status: StatusOS;
+    arquivada: boolean;
     descricaoProblema?: string;
     servicos: OsItemServico[];
     pecas: OsItemPeca[];
@@ -55,6 +56,7 @@ export class OrdemDeServico {
     get veiculoId() { return this.props.veiculoId; }
     get orcamentoId() { return this.props.orcamentoId; }
     get status() { return this.props.status; }
+    get arquivada() { return this.props.arquivada; }
     get descricaoProblema() { return this.props.descricaoProblema; }
     get servicos() { return this.props.servicos; }
     get pecas() { return this.props.pecas; }
@@ -83,6 +85,7 @@ export class OrdemDeServico {
             veiculoId: props.veiculoId,
             descricaoProblema: props.descricaoProblema,
             status: StatusOS.RECEBIDA,
+            arquivada: false,
             servicos: [],
             pecas: [],
             historicoStatus: [historico],
@@ -241,6 +244,7 @@ export class OrdemDeServico {
         return new OrdemDeServico({
             ...this.transicionar(StatusOS.FINALIZADA).props,
             dataFechamento: new Date(),
+            arquivada: true,
         });
     }
 
@@ -250,7 +254,10 @@ export class OrdemDeServico {
                 `Transição inválida: ${this.props.status} → ENTREGUE. Status esperado: FINALIZADA`,
             );
         }
-        return this.transicionar(StatusOS.ENTREGUE);
+        return new OrdemDeServico({
+            ...this.transicionar(StatusOS.ENTREGUE).props,
+            arquivada: true,
+        });
     }
 
     toJSON() {
@@ -261,6 +268,7 @@ export class OrdemDeServico {
             veiculoId: this.props.veiculoId,
             orcamentoId: this.props.orcamentoId,
             status: this.props.status,
+            arquivada: this.props.arquivada,
             descricaoProblema: this.props.descricaoProblema,
             servicos: this.props.servicos,
             pecas: this.props.pecas,

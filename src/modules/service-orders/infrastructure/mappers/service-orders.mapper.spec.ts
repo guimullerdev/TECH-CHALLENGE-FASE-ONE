@@ -8,6 +8,7 @@ const baseRaw = {
     clienteId: 'cliente-1',
     veiculoId: 'veiculo-1',
     status: 'RECEBIDA' as const,
+    arquivada: false,
     descricaoProblema: 'Barulho ao frear',
     dataAbertura: new Date('2024-01-01'),
     dataFechamento: null,
@@ -120,8 +121,20 @@ describe('ServiceOrderMapper', () => {
         });
     });
 
+    describe('toDomain() — arquivada', () => {
+        it('maps arquivada=false correctly', () => {
+            const os = ServiceOrderMapper.toDomain({ ...baseRaw, arquivada: false, osItensServico: [], osItensPeca: [] });
+            expect(os.arquivada).toBe(false);
+        });
+
+        it('maps arquivada=true correctly', () => {
+            const os = ServiceOrderMapper.toDomain({ ...baseRaw, arquivada: true, status: 'FINALIZADA' as const, osItensServico: [], osItensPeca: [] });
+            expect(os.arquivada).toBe(true);
+        });
+    });
+
     describe('toPrisma()', () => {
-        it('preserves all basic fields', () => {
+        it('preserves all basic fields including arquivada', () => {
             const os = ServiceOrderMapper.toDomain({ ...baseRaw, osItensServico: [], osItensPeca: [] });
             const prisma = ServiceOrderMapper.toPrisma(os);
             expect(prisma.id).toBe('os-1');
@@ -129,6 +142,7 @@ describe('ServiceOrderMapper', () => {
             expect(prisma.clienteId).toBe('cliente-1');
             expect(prisma.veiculoId).toBe('veiculo-1');
             expect(prisma.descricaoProblema).toBe('Barulho ao frear');
+            expect(prisma.arquivada).toBe(false);
         });
 
         it('maps undefined descricaoProblema to null', () => {

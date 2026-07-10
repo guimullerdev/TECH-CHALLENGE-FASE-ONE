@@ -1,6 +1,7 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from '../dto/login.dto';
 import { AuthResponseDto } from '../dto/auth-response.dto';
@@ -13,6 +14,7 @@ export class LoginUseCase {
         @Inject('UserRepository')
         private readonly repo: UserRepository,
         private readonly jwtService: JwtService,
+        private readonly configService: ConfigService,
     ) { }
 
     async execute(dto: LoginDto): Promise<AuthResponseDto> {
@@ -33,12 +35,12 @@ export class LoginUseCase {
         const payload = { sub: userId, email, role };
         const [accessToken, refreshToken] = await Promise.all([
             this.jwtService.signAsync(payload, {
-                secret: process.env.JWT_SECRET,
+                secret: this.configService.get<string>('JWT_SECRET'),
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                expiresIn: (process.env.JWT_EXPIRES_IN ?? '1h') as any,
+                expiresIn: (this.configService.get<string>('JWT_EXPIRES_IN') ?? '1h') as any,
             }),
             this.jwtService.signAsync(payload, {
-                secret: process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET + '_refresh',
+                secret: this.configService.get<string>('JWT_REFRESH_SECRET') ?? this.configService.get<string>('JWT_SECRET') + '_refresh',
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 expiresIn: '7d' as any,
             }),

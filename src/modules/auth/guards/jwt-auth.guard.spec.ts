@@ -23,11 +23,15 @@ const mockJwt = (payload?: object, shouldThrow = false) => ({
         : jest.fn().mockResolvedValue(payload ?? { sub: 'u-1', email: 'a@b.com' }),
 });
 
+const mockConfig = () => ({
+    get: jest.fn(),
+});
+
 describe('JwtAuthGuard', () => {
     it('returns true for public routes without checking token', async () => {
         const reflector = mockReflector(true);
         const jwt = mockJwt();
-        const guard = new JwtAuthGuard(jwt as any, reflector as any);
+        const guard = new JwtAuthGuard(jwt as any, reflector as any, mockConfig() as any);
 
         const result = await guard.canActivate(makeContext(undefined, true) as any);
 
@@ -38,7 +42,7 @@ describe('JwtAuthGuard', () => {
     it('returns true and attaches user for valid Bearer token', async () => {
         const reflector = mockReflector(false);
         const jwt = mockJwt({ sub: 'u-1', email: 'a@b.com' });
-        const guard = new JwtAuthGuard(jwt as any, reflector as any);
+        const guard = new JwtAuthGuard(jwt as any, reflector as any, mockConfig() as any);
         const ctx = makeContext('Bearer valid-token') as any;
 
         const result = await guard.canActivate(ctx);
@@ -50,7 +54,7 @@ describe('JwtAuthGuard', () => {
     it('throws UnauthorizedException when no authorization header', async () => {
         const reflector = mockReflector(false);
         const jwt = mockJwt();
-        const guard = new JwtAuthGuard(jwt as any, reflector as any);
+        const guard = new JwtAuthGuard(jwt as any, reflector as any, mockConfig() as any);
 
         await expect(guard.canActivate(makeContext(undefined) as any)).rejects.toThrow(UnauthorizedException);
     });
@@ -58,7 +62,7 @@ describe('JwtAuthGuard', () => {
     it('throws UnauthorizedException when authorization is not Bearer', async () => {
         const reflector = mockReflector(false);
         const jwt = mockJwt();
-        const guard = new JwtAuthGuard(jwt as any, reflector as any);
+        const guard = new JwtAuthGuard(jwt as any, reflector as any, mockConfig() as any);
 
         await expect(guard.canActivate(makeContext('Basic abc123') as any)).rejects.toThrow(UnauthorizedException);
     });
@@ -66,7 +70,7 @@ describe('JwtAuthGuard', () => {
     it('throws UnauthorizedException when token is invalid/expired', async () => {
         const reflector = mockReflector(false);
         const jwt = mockJwt(undefined, true);
-        const guard = new JwtAuthGuard(jwt as any, reflector as any);
+        const guard = new JwtAuthGuard(jwt as any, reflector as any, mockConfig() as any);
 
         await expect(guard.canActivate(makeContext('Bearer bad-token') as any)).rejects.toThrow(UnauthorizedException);
     });

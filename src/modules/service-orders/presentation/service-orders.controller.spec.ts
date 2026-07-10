@@ -18,6 +18,7 @@ import { GetOrcamentoUseCase } from '../../orcamentos/application/use-cases/get-
 import { GetOsAcompanhamentoUseCase } from '../application/use-cases/get-os-acompanhamento.usecase';
 import { GetTempoMedioOsUseCase } from '../application/use-cases/get-tempo-medio-os.usecase';
 import { ConsultaPublicaOsUseCase } from '../application/use-cases/consulta-publica-os.usecase';
+import { ProcessarWebhookNotificacaoUseCase } from '../application/use-cases/processar-webhook-notificacao.usecase';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 const uc = (val: any = { id: 'os-1' }) => ({ execute: jest.fn().mockResolvedValue(val), executeAll: jest.fn().mockResolvedValue([val]) });
@@ -42,6 +43,7 @@ describe('ServiceOrdersController', () => {
     let getAcompanhamentoUC: { execute: jest.Mock };
     let getTempoMedioUC: { execute: jest.Mock };
     let consultaPublicaUC: { execute: jest.Mock };
+    let processarWebhookUC: { execute: jest.Mock };
 
     beforeEach(async () => {
         createUC = { execute: jest.fn().mockResolvedValue({ id: 'os-1' }) };
@@ -62,6 +64,7 @@ describe('ServiceOrdersController', () => {
         getAcompanhamentoUC = { execute: jest.fn().mockResolvedValue({ id: 'os-1', statusAtual: 'RECEBIDA' }) };
         getTempoMedioUC = { execute: jest.fn().mockResolvedValue({ totalOsConsideradas: 0, tempoMedioEmHoras: 0 }) };
         consultaPublicaUC = { execute: jest.fn().mockResolvedValue({ numero: 'OS-001', status: 'RECEBIDA' }) };
+        processarWebhookUC = { execute: jest.fn().mockResolvedValue({ resultado: 'APLICADA', osId: 'os-1', statusAtual: 'APROVADA', mensagem: 'ok' }) };
 
         const module: TestingModule = await Test.createTestingModule({
             controllers: [ServiceOrdersController],
@@ -84,6 +87,7 @@ describe('ServiceOrdersController', () => {
                 { provide: GetOsAcompanhamentoUseCase, useValue: getAcompanhamentoUC },
                 { provide: GetTempoMedioOsUseCase, useValue: getTempoMedioUC },
                 { provide: ConsultaPublicaOsUseCase, useValue: consultaPublicaUC },
+                { provide: ProcessarWebhookNotificacaoUseCase, useValue: processarWebhookUC },
             ],
         })
             .overrideGuard(JwtAuthGuard)

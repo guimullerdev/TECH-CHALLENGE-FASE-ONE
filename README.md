@@ -151,7 +151,7 @@ terraform destroy -auto-approve
 - **Swagger / OpenAPI:** `http://localhost:3000/api` (com a aplicação rodando).
 - Coleção de exemplos de requisições: [`manual-test.http`](manual-test.http).
 
-Principais fluxos da Fase 2:
+Destaques da Fase 2:
 
 - `POST /os` — abertura de OS retornando o identificador único.
 - `GET /os/:id/status` — consulta pública do status da OS.
@@ -160,6 +160,85 @@ Principais fluxos da Fase 2:
   exclusão lógica das arquivadas.
 - `POST /os/webhook/notificacao` — webhook externo que aprova/reprova o
   orçamento de uma OS (autenticado por `WEBHOOK_SECRET`).
+
+### Todas as rotas
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET`  | `/health` | Health check (liveness/readiness) |
+| `POST` | `/auth/register` | Registrar usuário |
+| `POST` | `/auth/login` | Autenticar e emitir tokens |
+| `POST` | `/auth/refresh` | Renovar o access token |
+| `POST` | `/clientes` | Criar cliente |
+| `GET`  | `/clientes` | Listar clientes |
+| `GET`  | `/clientes/:id` | Buscar cliente por ID |
+| `PUT`  | `/clientes/:id` | Atualizar cliente |
+| `DELETE` | `/clientes/:id` | Remover cliente |
+| `POST` | `/veiculos` | Cadastrar veículo |
+| `GET`  | `/veiculos` | Listar veículos |
+| `GET`  | `/veiculos/:id` | Buscar veículo por ID |
+| `PUT`  | `/veiculos/:id` | Atualizar veículo |
+| `DELETE` | `/veiculos/:id` | Remover veículo |
+| `POST` | `/servicos` | Criar serviço |
+| `GET`  | `/servicos` | Listar serviços |
+| `GET`  | `/servicos/:id` | Buscar serviço por ID |
+| `PUT`  | `/servicos/:id` | Atualizar serviço |
+| `PATCH` | `/servicos/:id/desativar` | Desativar serviço |
+| `PATCH` | `/servicos/:id/reativar` | Reativar serviço |
+| `POST` | `/pecas` | Criar peça |
+| `GET`  | `/pecas` | Listar peças |
+| `GET`  | `/pecas/:id` | Buscar peça por ID |
+| `PUT`  | `/pecas/:id` | Atualizar peça |
+| `PATCH` | `/pecas/:id/desativar` | Desativar peça |
+| `PATCH` | `/pecas/:id/reativar` | Reativar peça |
+| `POST` | `/estoque/entrada` | Registrar entrada de estoque |
+| `POST` | `/estoque/baixa` | Registrar baixa de estoque |
+| `POST` | `/estoque/reservar` | Reservar estoque |
+| `POST` | `/estoque/liberar-reserva` | Liberar reserva de estoque |
+| `POST` | `/estoque/solicitar-reposicao` | Solicitar reposição |
+| `GET`  | `/estoque/movimentacoes` | Listar movimentações |
+| `POST` | `/os` | Abrir ordem de serviço |
+| `GET`  | `/os` | Listar OS (priorizada, exclui arquivadas) |
+| `GET`  | `/os/consulta` | Consulta pública da OS |
+| `GET`  | `/os/metricas/tempo-medio` | Tempo médio de execução |
+| `GET`  | `/os/:id` | Buscar OS por ID |
+| `GET`  | `/os/:id/status` | Consultar status da OS |
+| `GET`  | `/os/:id/acompanhamento` | Acompanhamento da OS |
+| `GET`  | `/os/:id/orcamento` | Orçamento da OS |
+| `POST` | `/os/webhook/notificacao` | Webhook externo — aprova/reprova orçamento |
+| `POST` | `/os/:id/servicos` | Adicionar serviço à OS |
+| `DELETE` | `/os/:id/servicos/:itemId` | Remover serviço da OS |
+| `PATCH` | `/os/:id/servicos/:itemId/realizar` | Registrar execução de serviço |
+| `POST` | `/os/:id/pecas` | Adicionar peça à OS |
+| `DELETE` | `/os/:id/pecas/:itemId` | Remover peça da OS |
+| `PATCH` | `/os/:id/pecas/:itemId/utilizar` | Marcar peça como utilizada |
+| `PATCH` | `/os/:id/iniciar-diagnostico` | Iniciar diagnóstico |
+| `PATCH` | `/os/:id/concluir-diagnostico` | Concluir diagnóstico (gera orçamento) |
+| `PATCH` | `/os/:id/iniciar-execucao` | Iniciar execução |
+| `PATCH` | `/os/:id/finalizar-execucao` | Finalizar execução |
+| `PATCH` | `/os/:id/liberar-veiculo` | Liberar veículo |
+| `PATCH` | `/os/:id/entregar` | Entregar veículo |
+| `GET`  | `/orcamentos/by-os/:osId` | Buscar orçamento pela OS |
+| `GET`  | `/orcamentos/:id` | Buscar orçamento por ID |
+| `POST` | `/orcamentos/:id/enviar` | Enviar orçamento ao cliente |
+| `PATCH` | `/orcamentos/:id/aprovar` | Aprovar orçamento |
+| `PATCH` | `/orcamentos/:id/reprovar` | Reprovar orçamento |
+| `GET`  | `/relatorios/tempo-medio-servicos` | Tempo médio por serviço |
+
+---
+
+## Variáveis de ambiente
+
+| Variável | Descrição | Default |
+|---|---|---|
+| `DATABASE_URL` | String de conexão do PostgreSQL | `postgresql://oficina:oficina@localhost:5432/oficina_db` |
+| `DB_USER` | Usuário do Postgres (Docker Compose) | `oficina` |
+| `DB_PASSWORD` | Senha do Postgres (Docker Compose) | `oficina` |
+| `DB_NAME` | Nome do banco (Docker Compose) | `oficina_db` |
+| `JWT_SECRET` | Chave de assinatura do JWT | `dev_secret_key` |
+| `JWT_EXPIRES_IN` | Validade do token | `8h` |
+| `WEBHOOK_SECRET` | Segredo do webhook de notificação externa | `dev_webhook_secret` |
+| `NODE_ENV` | Ambiente da aplicação | `development` |
 
 ---
 

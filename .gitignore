@@ -65,6 +65,8 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 crash.log
 crash.*.log
 *.tfvars
+# kubeconfig gerado pelo provider kind ao rodar terraform apply localmente
+infra/*-cluster-config
 *.tfvars.json
 override.tf
 override.tf.json

@@ -51,6 +51,8 @@ src/
   (repositórios Prisma = *adapters*). `application` (use cases) depende só das
   interfaces; `presentation` (controllers) só dos use cases.
 
+![img.png](components.png)
+
 ### Infraestrutura provisionada
 
 Tudo roda dentro de um **cluster Kubernetes local (kind)**, provisionado por
@@ -70,6 +72,8 @@ Cluster Kubernetes (kind)
   status da OS publicamente e um sistema externo aprova/reprova orçamento pelo
   webhook (`POST /os/webhook/notificacao`, autenticado por `WEBHOOK_SECRET`).
 
+![img_1.png](infra.png)
+
 ### Fluxo de deploy (CI/CD)
 
 Pipeline no GitHub Actions (`.github/workflows/ci-cd.yml`), disparado por push
@@ -85,6 +89,8 @@ na `main`, rodando em runner `ubuntu-latest`:
 
 > O deploy usa **Terraform como mecanismo** (recursos `kubernetes_*` e
 > `kubectl_manifest`), não `kubectl apply` avulso.
+
+![img_2.png](cicd.png)
 
 ---
 

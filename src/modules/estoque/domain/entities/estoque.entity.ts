@@ -21,6 +21,17 @@ export class Estoque {
 
     get quantidadeTotal(): number { return this._quantidadeDisponivel.getValue() + this._quantidadeReservada.getValue(); }
 
+    toJSON() {
+        return {
+            id: this.id,
+            pecaId: this.pecaId,
+            quantidadeDisponivel: this.quantidadeDisponivel,
+            quantidadeReservada: this.quantidadeReservada,
+            quantidadeTotal: this.quantidadeTotal,
+            updatedAt: this.updatedAt,
+        };
+    }
+
     static create(props: { pecaId: string; quantidadeInicial?: number }): Estoque {
         const qtd = props.quantidadeInicial ?? 0;
         return new Estoque(

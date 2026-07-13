@@ -28,6 +28,21 @@ export class Cliente {
     get telefone(): string | undefined { return this._telefone?.getValue(); }
     get email(): string | undefined { return this._email?.getValue(); }
 
+    toJSON() {
+        return {
+            id: this.id,
+            nome: this.nome,
+            documento: this.documento,
+            tipoDocumento: this.tipoDocumento,
+            telefone: this.telefone,
+            email: this.email,
+            endereco: this.endereco,
+            ativo: this.ativo,
+            createdAt: this.createdAt,
+            updatedAt: this.updatedAt,
+        };
+    }
+
     static create(props: {
         nome: string;
         documento: string;

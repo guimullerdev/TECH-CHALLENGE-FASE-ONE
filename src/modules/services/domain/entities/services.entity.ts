@@ -22,6 +22,19 @@ export class Servico {
     get precoBase(): number { return this._precoBase.getValue(); }
     get descricao(): string | undefined { return this._descricao?.getValue(); }
 
+    toJSON() {
+        return {
+            id: this.id,
+            nome: this.nome,
+            precoBase: this.precoBase,
+            descricao: this.descricao,
+            tempoEstimado: this.tempoEstimado,
+            ativo: this.ativo,
+            createdAt: this.createdAt,
+            updatedAt: this.updatedAt,
+        };
+    }
+
     static create(props: { nome: string; precoBase: number; descricao?: string; tempoEstimado?: number }): Servico {
         const descricao = props.descricao ? DescricaoServico.create(props.descricao) : undefined;
         return new Servico(

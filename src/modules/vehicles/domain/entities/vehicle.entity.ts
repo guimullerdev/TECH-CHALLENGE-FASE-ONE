@@ -25,6 +25,22 @@ export class Veiculo {
     get placa(): string { return this._placa.getValue(); }
     get ano(): number | undefined { return this._ano?.getValue(); }
 
+    toJSON() {
+        return {
+            id: this.id,
+            placa: this.placa,
+            marca: this.marca,
+            modelo: this.modelo,
+            clienteId: this.clienteId,
+            ano: this.ano,
+            cor: this.cor,
+            kmAtual: this.kmAtual,
+            ativo: this.ativo,
+            createdAt: this.createdAt,
+            updatedAt: this.updatedAt,
+        };
+    }
+
     static create(props: {
         placa: string;
         marca: string;

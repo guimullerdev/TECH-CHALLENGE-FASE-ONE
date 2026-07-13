@@ -25,6 +25,22 @@ export class Peca {
     get precoUnitario(): number { return this._precoUnitario.getValue(); }
     get descricao(): string | undefined { return this._descricao?.getValue(); }
 
+    toJSON() {
+        return {
+            id: this.id,
+            nome: this.nome,
+            precoUnitario: this.precoUnitario,
+            qtdTotal: this.qtdTotal,
+            qtdDisponivel: this.qtdDisponivel,
+            qtdReservada: this.qtdReservada,
+            codigo: this.codigo,
+            descricao: this.descricao,
+            ativo: this.ativo,
+            createdAt: this.createdAt,
+            updatedAt: this.updatedAt,
+        };
+    }
+
     static create(props: {
         nome: string;
         precoUnitario: number;

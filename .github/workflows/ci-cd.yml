@@ -92,7 +92,15 @@ jobs:
       - name: Terraform init
         run: terraform -chdir=infra init
 
-      - name: Deploy no cluster (cluster kind + banco + metrics-server + manifestos via terraform)
+      # Os providers kubernetes/kubectl se configuram a partir dos atributos do
+      # kind_cluster (endpoint, certificados). Num apply único do zero esses
+      # atributos ainda não existem, e o provider kubectl falha ("no configuration
+      # has been provided"). Por isso aplicamos em duas etapas: primeiro só o
+      # cluster (gera os atributos), depois o restante.
+      - name: Deploy — provisiona o cluster kind
+        run: terraform -chdir=infra apply -auto-approve -target=kind_cluster.this
+
+      - name: Deploy — banco, metrics-server e manifestos do app (via terraform)
         run: terraform -chdir=infra apply -auto-approve
 
       - name: Configurar kubeconfig do cluster kind

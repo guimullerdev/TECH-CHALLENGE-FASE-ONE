@@ -123,8 +123,11 @@ Pré-requisitos: [Docker](https://docs.docker.com/get-docker/),
 docker build -t ghcr.io/guimullerdev/tech-challenge-fase-one:latest .
 
 # 2. Provisionar cluster + banco + metrics-server + app
+# (aplicado em duas etapas: os providers kubernetes/kubectl dependem dos
+#  atributos do cluster, que só existem após a criação do kind_cluster)
 cd infra
 terraform init
+terraform apply -auto-approve -target=kind_cluster.this
 terraform apply -auto-approve
 
 # 3. Acompanhar

@@ -40,3 +40,9 @@ variable "db_storage_size" {
   type        = string
   default     = "1Gi"
 }
+
+variable "app_image" {
+  description = "Imagem da API carregada no cluster kind. Deve bater com a tag usada em k8s/deployment.yaml."
+  type        = string
+  default     = "ghcr.io/guimullerdev/tech-challenge-fase-one:latest"
+}

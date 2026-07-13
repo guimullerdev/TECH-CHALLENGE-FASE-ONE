@@ -6,6 +6,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: oficina-api
+  namespace: oficina
   labels:
     app: oficina-api
 spec:
@@ -38,13 +39,13 @@ spec:
               memory: 512Mi
           readinessProbe:
             httpGet:
-              path: /api-json
+              path: /health
               port: 3000
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /api-json
+              path: /health
               port: 3000
             initialDelaySeconds: 20
             periodSeconds: 20

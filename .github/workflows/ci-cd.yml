@@ -9,8 +9,14 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  # Deve bater com a tag em k8s/deployment.yaml e com a default de var.app_image (infra/).
+  APP_IMAGE: ghcr.io/guimullerdev/tech-challenge-fase-one:latest
+  CLUSTER_NAME: oficina-cluster
+  KIND_VERSION: v0.24.0
+  TERRAFORM_VERSION: 1.9.8
 
 jobs:
+  # --- Build da aplicação + execução dos testes automatizados ---------------
   build-and-test:
     runs-on: ubuntu-latest
     steps:
@@ -23,10 +29,11 @@ jobs:
       - run: corepack enable && corepack prepare yarn@1.22.22 --activate
       - run: yarn install --frozen-lockfile
       - run: yarn build
-      # yarn test:cov enforces the coverage baseline (statements/branches/functions/lines)
-      # via jest's coverageThreshold in package.json — the pipeline fails if it regresses.
+      # test:cov aplica o threshold de cobertura (coverageThreshold do package.json);
+      # a pipeline falha se regredir.
       - run: yarn test:cov
 
+  # --- Build da imagem Docker + publicação no GHCR --------------------------
   docker-build-push:
     needs: build-and-test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -34,8 +41,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    outputs:
-      image: ${{ steps.meta.outputs.image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -45,13 +50,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Registry image names must be lowercase; github.repository preserves the
-      # repo's actual casing (e.g. TECH-CHALLENGE-FASE-ONE), so it can't be used as-is.
       - id: meta
         run: |
           base=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           echo "base=$base" >> "$GITHUB_OUTPUT"
-          echo "image=$base:${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/build-push-action@v6
         with:
@@ -61,56 +63,57 @@ jobs:
             ${{ steps.meta.outputs.base }}:${{ github.sha }}
             ${{ steps.meta.outputs.base }}:latest
 
-  # Explicit, named stage for database migrations (PRÉ-REQ 2 do dev-plan.md).
-  # Production migrations are actually applied by entrypoint.sh (`prisma migrate
-  # deploy`) when each pod starts — safe under concurrent execution thanks to
-  # Prisma's advisory locking. This stage documents that step in the pipeline and
-  # runs it explicitly too, so a migration failure is caught before deploy-app
-  # rolls out the new image.
-  deploy-db:
-    needs: docker-build-push
+  # --- Deploy real: cluster kind efêmero + banco + manifestos, tudo via Terraform ---
+  # Roda de ponta a ponta no runner (VM efêmera): sobe um cluster kind, aplica o
+  # banco (kubernetes_*), o metrics-server e os manifestos do app (kubectl_manifest),
+  # valida o rollout/HPA/health e derruba o cluster. Sem depender de cluster externo.
+  deploy:
+    needs: build-and-test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    env:
-      HAS_DATABASE_URL: ${{ secrets.DATABASE_URL != '' }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - name: Build da imagem Docker (para carregar no kind)
+        run: docker build -t "$APP_IMAGE" .
+
+      - name: Instalar kind
+        run: |
+          curl -Lo ./kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          kind version
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
-          node-version: 24
-      - run: corepack enable && corepack prepare yarn@1.22.22 --activate
-      - run: yarn install --frozen-lockfile
-      - name: Apply pending migrations
-        if: env.HAS_DATABASE_URL == 'true'
-        run: npx prisma migrate deploy
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      - name: Skip (no DATABASE_URL configured)
-        if: env.HAS_DATABASE_URL == 'false'
-        run: echo "DATABASE_URL secret not set — skipping explicit migration step. Migrations still run via entrypoint.sh when pods start."
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-  deploy-app:
-    needs: [docker-build-push, deploy-db]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    env:
-      HAS_KUBE_CONFIG: ${{ secrets.KUBE_CONFIG != '' }}
-    steps:
-      - uses: actions/checkout@v4
+      - name: Terraform init
+        run: terraform -chdir=infra init
 
-      - name: Configure kubeconfig
-        if: env.HAS_KUBE_CONFIG == 'true'
+      - name: Deploy no cluster (cluster kind + banco + metrics-server + manifestos via terraform)
+        run: terraform -chdir=infra apply -auto-approve
+
+      - name: Configurar kubeconfig do cluster kind
         run: |
-          mkdir -p "$HOME/.kube"
-          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > "$HOME/.kube/config"
+          kind get kubeconfig --name "$CLUSTER_NAME" > "$HOME/kubeconfig"
+          echo "KUBECONFIG=$HOME/kubeconfig" >> "$GITHUB_ENV"
 
-      - name: Apply manifests and roll out new image
-        if: env.HAS_KUBE_CONFIG == 'true'
+      - name: Smoke test — rollout, HPA e pods
         run: |
-          kubectl apply -f k8s/
-          kubectl set image deployment/oficina-api oficina-api=${{ needs.docker-build-push.outputs.image }}
-          kubectl rollout status deployment/oficina-api --timeout=180s
+          kubectl rollout status deployment/oficina-api -n oficina --timeout=180s
+          kubectl get hpa -n oficina
+          kubectl get pods -n oficina
 
-      - name: Skip (no KUBE_CONFIG configured)
-        if: env.HAS_KUBE_CONFIG == 'false'
-        run: echo "KUBE_CONFIG secret not set — skipping deploy-app. Configure it to enable automated rollout to the cluster."
+      - name: Smoke test — GET /health via port-forward
+        run: |
+          kubectl port-forward -n oficina svc/oficina-api 8080:80 &
+          PF_PID=$!
+          sleep 5
+          curl -sf http://localhost:8080/health
+          kill $PF_PID
+
+      - name: Teardown (cluster efêmero)
+        if: always()
+        run: terraform -chdir=infra destroy -auto-approve || kind delete cluster --name "$CLUSTER_NAME" || true

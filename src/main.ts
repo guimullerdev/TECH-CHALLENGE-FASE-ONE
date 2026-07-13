@@ -28,6 +28,7 @@ async function bootstrap() {
     .addTag('os', 'Ordens de serviço')
     .addTag('estoque', 'Controle de estoque')
     .addTag('orcamentos', 'Orçamentos')
+    .addTag('health', 'Health check')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

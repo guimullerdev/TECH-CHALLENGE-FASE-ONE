@@ -253,8 +253,15 @@ Destaques da Fase 2:
 
 ## Vídeo demonstrativo
 
-> _(a preencher)_ — link do vídeo no YouTube/Vimeo demonstrando deploy da
+> _https://www.youtube.com/watch?v=FO_1gfI67RU_ — link do vídeo no YouTube/Vimeo demonstrando deploy da
 > aplicação, execução do CI/CD, consumo das APIs e escalabilidade automática.
+
+---
+
+## Participantes
+
+1. Natália Manosso - Discord natz6 - RM371743
+2. Guilherme Müller Severo - Discord Guilherme M Severo - RM373321
 
 ---
 

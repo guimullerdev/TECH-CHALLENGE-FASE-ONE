@@ -1,0 +1,53 @@
+# Massa de demonstração, aplicada dentro do cluster.
+#
+# Mesma razão do Job de migration: o RDS é `publicly_accessible = false`, então
+# só quem roda no cluster alcança o banco. A imagem já carrega
+# `prisma/seed-demo.sql` e o CLI do Prisma (dependência de produção), então não
+# é preciso empacotar nada a mais.
+#
+# **Não faz parte do pipeline** — é manual, de propósito. Massa de
+# demonstração não deve entrar em ambiente nenhum por acidente; quem roda,
+# roda sabendo. O SQL é idempotente, dá para reexecutar entre ensaios da
+# gravação.
+#
+# Uso:
+#   export APP_IMAGE=$(kubectl get deploy oficina-api -n prod \
+#     -o jsonpath='{.spec.template.spec.containers[0].image}')
+#   export SEED_JOB_NAME="oficina-seed-$(date +%s)"
+#   envsubst < k8s/seed-demo-job.yaml | kubectl apply -n prod -f -
+#   kubectl wait -n prod --for=condition=complete "job/$SEED_JOB_NAME" --timeout=120s
+#
+# O nome leva timestamp porque Job é imutável: reaplicar com o mesmo nome
+# falharia em vez de rodar de novo.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ${SEED_JOB_NAME}
+  labels:
+    app: oficina-api
+    component: seed-demo
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 180
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: oficina-api
+        component: seed-demo
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: seed
+          image: ${APP_IMAGE}
+          command: ["npx", "prisma", "db", "execute", "--file", "prisma/seed-demo.sql"]
+          envFrom:
+            - secretRef:
+                name: oficina-api-secret
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

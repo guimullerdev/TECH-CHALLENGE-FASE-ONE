@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 
-import { UserRole } from '../domain/enums/user-role.enum';
+import { TokenRole } from '../domain/enums/user-role.enum';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
@@ -17,14 +17,14 @@ export class RolesGuard implements CanActivate {
         ]);
         if (isPublic) return true;
 
-        const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
+        const requiredRoles = this.reflector.getAllAndOverride<TokenRole[]>(ROLES_KEY, [
             context.getHandler(),
             context.getClass(),
         ]);
         if (!requiredRoles || requiredRoles.length === 0) return true;
 
         const request = context.switchToHttp().getRequest<Request>();
-        const user = (request as any)['user'] as { role?: UserRole } | undefined;
+        const user = (request as any)['user'] as { role?: TokenRole } | undefined;
 
         if (!user?.role || !requiredRoles.includes(user.role)) {
             throw new ForbiddenException('Acesso negado: perfil sem permissão para esta operação');

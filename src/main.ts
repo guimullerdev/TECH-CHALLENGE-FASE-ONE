@@ -1,12 +1,23 @@
+// Precisa ser o primeiro import do processo: o agente do New Relic
+// instrumenta os módulos conforme eles são carregados, então qualquer coisa
+// importada antes dele fica sem instrumentação. O agente só liga de fato se
+// NEW_RELIC_ENABLED=true (ver newrelic.cjs).
+import 'newrelic';
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // bufferLogs: segura os logs do boot até o logger do pino estar pronto,
+  // senão as primeiras linhas sairiam no formato padrão do Nest, sem JSON.
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  app.useLogger(app.get(Logger));
 
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));

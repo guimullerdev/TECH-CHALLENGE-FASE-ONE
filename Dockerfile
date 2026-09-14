@@ -42,6 +42,10 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./
 COPY --from=builder /app/package.json ./
 
+# CAs da AWS para RDS — sem elas o Prisma não abre TLS contra o banco
+# gerenciado (ver src/prisma/pg-connection.ts).
+COPY --from=builder /app/certs ./certs
+
 COPY entrypoint.sh /entrypoint.sh
 RUN dos2unix /entrypoint.sh && chmod +x /entrypoint.sh
 

@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 
 import { HealthController } from './common/health/health.controller';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingModule } from './common/logging/logging.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -43,6 +44,13 @@ import { RelatoriosModule } from './modules/relatorios/relatorios.module';
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    // Registrado aqui, e não via `useGlobalFilters` no main.ts, para receber
+    // o PinoLogger por injeção — é o que deixa a falha sair como log
+    // estruturado e virar alerta.
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
     },
   ],
 })

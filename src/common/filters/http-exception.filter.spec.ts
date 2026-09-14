@@ -1,5 +1,9 @@
 import { HttpException, HttpStatus, Logger } from '@nestjs/common';
-import { HttpExceptionFilter } from './http-exception.filter';
+import {
+    FALHA_PROCESSAMENTO_OS,
+    FALHA_REQUISICAO,
+    HttpExceptionFilter,
+} from './http-exception.filter';
 
 const makeHost = (responseMock: any, requestMock: any = { method: 'GET', url: '/test' }) => ({
     switchToHttp: () => ({
@@ -130,5 +134,73 @@ describe('HttpExceptionFilter', () => {
         expect(res.status).toHaveBeenCalledWith(999);
         const body = res._json.mock.calls[0][0] as any;
         expect(body.error).toBe('Unknown');
+    });
+
+    // Estes campos são o que os alertas do New Relic consultam. Se alguém
+    // renomear `event` ou parar de logar, o alerta continua existindo e
+    // simplesmente nunca mais dispara — falha silenciosa. Daí os testes.
+    describe('log estruturado de falha (base dos alertas)', () => {
+        const makeLogger = () => ({ error: jest.fn() });
+
+        it('marca falha em rota de OS com o evento específico', () => {
+            const logger = makeLogger();
+            const filtroComLogger = new HttpExceptionFilter(logger as any);
+            const res = makeResponse();
+            const host = makeHost(res, {
+                method: 'POST',
+                url: '/os/123/servicos',
+                id: 'corr-abc',
+            }) as any;
+
+            filtroComLogger.catch(new Error('banco caiu'), host);
+
+            expect(logger.error).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    event: FALHA_PROCESSAMENTO_OS,
+                    correlationId: 'corr-abc',
+                    statusCode: 500,
+                    url: '/os/123/servicos',
+                }),
+                expect.any(String),
+            );
+        });
+
+        it('usa o evento genérico fora das rotas de OS', () => {
+            const logger = makeLogger();
+            const filtroComLogger = new HttpExceptionFilter(logger as any);
+            const host = makeHost(makeResponse(), { method: 'GET', url: '/clientes' }) as any;
+
+            filtroComLogger.catch(new Error('falhou'), host);
+
+            expect(logger.error).toHaveBeenCalledWith(
+                expect.objectContaining({ event: FALHA_REQUISICAO }),
+                expect.any(String),
+            );
+        });
+
+        it('não gera log de erro para 4xx — é o cliente errando, não o sistema', () => {
+            const logger = makeLogger();
+            const filtroComLogger = new HttpExceptionFilter(logger as any);
+            const host = makeHost(makeResponse(), { method: 'GET', url: '/os/123' }) as any;
+
+            filtroComLogger.catch(
+                new HttpException('CPF inválido', HttpStatus.BAD_REQUEST),
+                host,
+            );
+
+            expect(logger.error).not.toHaveBeenCalled();
+        });
+
+        it('inclui a stack da exceção para o alerta ser investigável', () => {
+            const logger = makeLogger();
+            const filtroComLogger = new HttpExceptionFilter(logger as any);
+            const host = makeHost(makeResponse(), { method: 'POST', url: '/os' }) as any;
+
+            filtroComLogger.catch(new Error('timeout no banco'), host);
+
+            const campos = logger.error.mock.calls[0][0] as any;
+            expect(campos.exception.message).toBe('timeout no banco');
+            expect(campos.exception.stack).toEqual(expect.any(String));
+        });
     });
 });

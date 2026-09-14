@@ -10,7 +10,6 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   // bufferLogs: segura os logs do boot até o logger do pino estar pronto,
@@ -19,7 +18,8 @@ async function bootstrap() {
 
   app.useLogger(app.get(Logger));
 
-  app.useGlobalFilters(new HttpExceptionFilter());
+  // HttpExceptionFilter é registrado via APP_FILTER no AppModule, para
+  // receber o PinoLogger por injeção.
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
 
   const config = new DocumentBuilder()

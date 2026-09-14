@@ -10,6 +10,7 @@ erDiagram
     CLIENTE ||--o{ VEICULO : possui
     CLIENTE ||--o{ ORDEM_DE_SERVICO : solicita
     VEICULO ||--o{ ORDEM_DE_SERVICO : "é levado em"
+    ORDEM_DE_SERVICO ||--o{ HISTORICO_STATUS_OS : registra
     ORDEM_DE_SERVICO ||--o{ OS_ITEM_SERVICO : contem
     SERVICO ||--o{ OS_ITEM_SERVICO : "é usado em"
     ORDEM_DE_SERVICO ||--o{ OS_ITEM_PECA : contem
@@ -127,6 +128,14 @@ erDiagram
         datetime updated_at
     }
 
+    HISTORICO_STATUS_OS {
+        uuid id PK
+        uuid os_id FK
+        enum status_anterior "nulo na abertura da OS"
+        enum status_novo
+        datetime data
+    }
+
     USER {
         uuid id PK
         string email UK
@@ -157,6 +166,15 @@ erDiagram
   efetivamente consumida na OS).
 - **`ordens_de_servico` 1:1 `orcamentos`**: `orcamentos.os_id` é `@unique`
   — cada OS gera no máximo um orçamento ativo.
+- **`ordens_de_servico` 1:N `historico_status_os`**: cada transição de
+  status vira uma linha, com `status_anterior` nulo apenas no registro de
+  abertura. Guardar a trilha em tabela própria (em vez de só o status atual
+  na OS) é o que permite responder "quanto tempo a OS passou em cada
+  status" — pergunta que o status corrente sozinho não responde. Alimenta o
+  acompanhamento exposto ao cliente e o dashboard de tempo médio por status.
+  Índice em `(os_id, data)` porque toda leitura é "a trilha desta OS, em
+  ordem cronológica". `ON DELETE CASCADE`: a trilha não faz sentido sem a OS.
+
 - **`pecas` 1:N `movimentacoes_estoque`**: toda entrada/baixa/reserva/
   liberação de estoque é rastreada; `os_id` é opcional porque
   movimentações do tipo `ENTRADA` (reposição de estoque) não estão

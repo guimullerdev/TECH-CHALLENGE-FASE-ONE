@@ -31,9 +31,21 @@ export class GetOsAcompanhamentoUseCase {
         private readonly repo: IOrdemDeServicoRepository,
     ) {}
 
-    async execute(osId: string): Promise<OsAcompanhamentoResponse> {
+    /**
+     * @param restringirAoClienteId quando informado, a OS só é devolvida se
+     * pertencer a esse cliente. Usado quando quem chama é o próprio cliente
+     * (token da Lambda): sem isso, bastaria conhecer o UUID de uma OS para
+     * ler a de qualquer outra pessoa.
+     */
+    async execute(osId: string, restringirAoClienteId?: string): Promise<OsAcompanhamentoResponse> {
         const os = await this.repo.findById(osId);
         if (!os) throw new NotFoundException(`Ordem de serviço ${osId} não encontrada`);
+
+        // 404 em vez de 403 de propósito: responder "existe, mas não é sua"
+        // confirmaria a existência da OS para quem não deveria saber.
+        if (restringirAoClienteId && os.clienteId !== restringirAoClienteId) {
+            throw new NotFoundException(`Ordem de serviço ${osId} não encontrada`);
+        }
 
         return {
             id: os.id,

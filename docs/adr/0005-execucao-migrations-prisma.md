@@ -1,6 +1,7 @@
 # ADR 0005 — Onde rodam as migrations Prisma
 
 - **Status**: Aceita
+- **Autor(es)**: Guilherme Müller
 - **Data**: 2026-09-13 (revisada no mesmo dia após Q&A oficial da FIAP sobre
   a fronteira entre repo de infra-k8s e repo da app — ver ADR 0001)
 - **Repos afetados**: `TECH-CHALLENGE-FASE-ONE` (app), `oficina-infra-db`,

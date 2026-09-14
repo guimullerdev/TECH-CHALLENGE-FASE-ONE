@@ -1,6 +1,7 @@
 # ADR 0006 — API Gateway: onde mora e o que ele decide
 
 - **Status**: Aceita
+- **Autor(es)**: Guilherme Müller
 - **Data**: 2026-09-14
 - **Repos afetados**: `oficina-infra-k8s` (dono do recurso),
   `oficina-auth-lambda`, `TECH-CHALLENGE-FASE-ONE`

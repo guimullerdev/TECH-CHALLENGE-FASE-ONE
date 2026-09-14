@@ -5,6 +5,9 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  # Permite reexecutar o deploy sem precisar de um commit vazio — útil para
+  # redeployar após mudar um secret, ou para demonstrar a pipeline ao vivo.
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io

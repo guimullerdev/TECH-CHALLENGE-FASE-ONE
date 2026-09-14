@@ -25,17 +25,21 @@ aplicação, não da infraestrutura do cluster (ver ADR 0001); o que
 `oficina-infra-k8s` precisa garantir é só o **metrics-server** disponível no
 cluster, sem o qual o HPA não tem métrica para agir.
 
-Diferença em relação à Fase 2: o `metrics-server` deixa de ser instalado
-manualmente — EKS (assim como a maioria dos clusters gerenciados) já expõe
-metrics-server nativamente ou via add-on gerenciado pela AWS, então o
-manifesto `metrics-server.yaml` que existia só para suprir essa lacuna do
-`kind` é removido.
+Diferença em relação à Fase 2: o `metrics-server` deixa de ser aplicado como
+manifesto solto (`metrics-server.yaml`, que existia só para suprir a lacuna
+do `kind`) e passa a ser um **add-on gerenciado do EKS**, declarado no
+Terraform de `oficina-infra-k8s`.
+
+Atenção: ao contrário do GKE, **o EKS não traz metrics-server por padrão** —
+sem instalar explicitamente, o HPA sobe mas fica com `<unknown>` nas métricas
+e nunca escala. Por isso ele é declarado como add-on, não assumido.
 
 ## Consequências
 
 - Positivas: reaproveita configuração já validada na Fase 2 sem
-  retrabalho; menos um componente para operar manualmente (metrics-server
-  passa a ser responsabilidade do provedor gerenciado).
+  retrabalho; o metrics-server passa a ser um add-on gerenciado pela AWS
+  (atualização e disponibilidade deixam de ser problema nosso) em vez de um
+  manifesto que o time mantém à mão.
 - Negativas / trade-offs aceitos: threshold de 70% CPU e o range 2-5
   réplicas não foram recalibrados para tráfego real de nuvem (continuam
   sendo os valores herdados de um ambiente de teste local) — se o volume

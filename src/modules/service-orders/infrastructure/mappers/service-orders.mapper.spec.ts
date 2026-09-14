@@ -159,3 +159,60 @@ describe('ServiceOrderMapper', () => {
         });
     });
 });
+
+// O histórico de status passou a ser persistido (migration
+// add_historico_status_os). Antes o mapper devolvia sempre [], o que deixava
+// o endpoint de acompanhamento vazio e impedia medir tempo por status.
+describe('ServiceOrderMapper — histórico de status', () => {
+    const historicoRaw = [
+        { id: 'h-1', statusAnterior: null, statusNovo: 'RECEBIDA' as const, data: new Date('2024-01-01T10:00:00Z') },
+        { id: 'h-2', statusAnterior: 'RECEBIDA' as const, statusNovo: 'EM_DIAGNOSTICO' as const, data: new Date('2024-01-01T10:05:00Z') },
+    ];
+
+    it('restaura o histórico vindo do banco', () => {
+        const os = ServiceOrderMapper.toDomain({
+            ...baseRaw,
+            osItensServico: [],
+            osItensPeca: [],
+            historicoStatus: historicoRaw,
+        });
+
+        expect(os.historicoStatus).toHaveLength(2);
+        expect(os.historicoStatus[0].statusAnterior).toBeNull();
+        expect(os.historicoStatus[1].statusAnterior).toBe(StatusOS.RECEBIDA);
+        expect(os.historicoStatus[1].statusNovo).toBe(StatusOS.EM_DIAGNOSTICO);
+    });
+
+    it('permite calcular a duração do status anterior a partir do restaurado', () => {
+        const os = ServiceOrderMapper.toDomain({
+            ...baseRaw,
+            osItensServico: [],
+            osItensPeca: [],
+            historicoStatus: historicoRaw,
+        });
+
+        expect(os.duracaoUltimoStatusSegundos).toBe(300);
+    });
+
+    it('devolve lista vazia para OS anteriores à migration — sem regressão', () => {
+        const os = ServiceOrderMapper.toDomain({ ...baseRaw, osItensServico: [], osItensPeca: [] });
+
+        expect(os.historicoStatus).toEqual([]);
+        expect(os.duracaoUltimoStatusSegundos).toBeUndefined();
+    });
+
+    it('historicoToPrisma monta as linhas com o osId para o createMany', () => {
+        const os = ServiceOrderMapper.toDomain({
+            ...baseRaw,
+            osItensServico: [],
+            osItensPeca: [],
+            historicoStatus: historicoRaw,
+        });
+
+        const linhas = ServiceOrderMapper.historicoToPrisma(os);
+
+        expect(linhas).toHaveLength(2);
+        expect(linhas[0]).toMatchObject({ id: 'h-1', osId: 'os-1', statusAnterior: null, statusNovo: 'RECEBIDA' });
+        expect(linhas[1]).toMatchObject({ id: 'h-2', osId: 'os-1', statusAnterior: 'RECEBIDA' });
+    });
+});

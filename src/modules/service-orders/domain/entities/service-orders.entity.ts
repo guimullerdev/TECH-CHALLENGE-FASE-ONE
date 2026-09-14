@@ -190,6 +190,27 @@ export class OrdemDeServico {
         });
     }
 
+    /**
+     * Quanto tempo a OS passou no status anterior, em segundos, considerando
+     * a última transição registrada.
+     *
+     * Cálculo puro sobre o histórico — a entidade não emite nada. Quem
+     * transforma isso em métrica é o interceptor de observabilidade, para o
+     * dashboard poder responder "tempo médio de execução por status".
+     *
+     * `undefined` quando a OS ainda não transicionou (só tem o RECEBIDA
+     * inicial), porque aí não há intervalo anterior a medir.
+     */
+    get duracaoUltimoStatusSegundos(): number | undefined {
+        const historico = this.props.historicoStatus;
+        if (historico.length < 2) return undefined;
+
+        const atual = historico[historico.length - 1];
+        const anterior = historico[historico.length - 2];
+
+        return Math.round((atual.data.getTime() - anterior.data.getTime()) / 1000);
+    }
+
     iniciarDiagnostico(): OrdemDeServico {
         if (this.props.status !== StatusOS.RECEBIDA) {
             throw new InvalidTransitionError(

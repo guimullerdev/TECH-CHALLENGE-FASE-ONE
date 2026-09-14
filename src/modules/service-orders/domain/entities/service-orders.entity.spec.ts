@@ -326,3 +326,37 @@ describe('InsufficientStockError', () => {
         expect(err.message).toContain('2');
     });
 });
+
+// Alimenta o dashboard "tempo médio de execução por status" exigido pelo PDF.
+// Sem esse cálculo o dado existiria só no Postgres, que o New Relic não lê.
+describe('duracaoUltimoStatusSegundos', () => {
+    it('é undefined numa OS recém-criada — não há intervalo anterior a medir', () => {
+        expect(baseOS().duracaoUltimoStatusSegundos).toBeUndefined();
+    });
+
+    it('mede o intervalo entre as duas últimas transições', () => {
+        jest.useFakeTimers().setSystemTime(new Date('2026-01-01T10:00:00Z'));
+        const recebida = baseOS();
+
+        jest.setSystemTime(new Date('2026-01-01T10:05:00Z'));
+        const emDiagnostico = recebida.iniciarDiagnostico();
+
+        expect(emDiagnostico.duracaoUltimoStatusSegundos).toBe(300);
+        jest.useRealTimers();
+    });
+
+    it('considera só a última transição, não o tempo total da OS', () => {
+        jest.useFakeTimers().setSystemTime(new Date('2026-01-01T10:00:00Z'));
+        const recebida = baseOS();
+
+        jest.setSystemTime(new Date('2026-01-01T10:30:00Z'));
+        const emDiagnostico = recebida.iniciarDiagnostico();
+
+        jest.setSystemTime(new Date('2026-01-01T10:32:00Z'));
+        const diagnosticado = emDiagnostico.concluirDiagnostico();
+
+        // 2 min no diagnóstico, não os 32 min desde a abertura
+        expect(diagnosticado.duracaoUltimoStatusSegundos).toBe(120);
+        jest.useRealTimers();
+    });
+});

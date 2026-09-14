@@ -1,7 +1,7 @@
 # RFC 0003 — Estratégia de autenticação por CPF
 
 - **Status**: Aceita
-- **Autor(es)**: TBD
+- **Autor(es)**: Guilherme Müller
 - **Data**: 2026-09-10
 - **Repos afetados**: `oficina-auth-lambda`, `oficina-infra-db`,
   `TECH-CHALLENGE-FASE-ONE` (app)

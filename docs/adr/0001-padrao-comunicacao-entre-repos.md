@@ -1,6 +1,7 @@
 # ADR 0001 — Padrão de comunicação entre os 4 repositórios
 
 - **Status**: Aceita
+- **Autor(es)**: Guilherme Müller
 - **Data**: 2026-09-10
 - **Repos afetados**: todos (app, auth-lambda, infra-k8s, infra-db)
 

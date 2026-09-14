@@ -1,6 +1,7 @@
 # ADR 0004 — Organização de logs e traces
 
 - **Status**: Aceita
+- **Autor(es)**: Guilherme Müller
 - **Data**: 2026-09-10
 - **Repos afetados**: `TECH-CHALLENGE-FASE-ONE` (app),
   `oficina-auth-lambda`

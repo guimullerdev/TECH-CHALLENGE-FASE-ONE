@@ -1,7 +1,7 @@
 # RFC 0004 — Ferramenta de observabilidade
 
 - **Status**: Aceita
-- **Autor(es)**: TBD
+- **Autor(es)**: Guilherme Müller
 - **Data**: 2026-09-10
 - **Repos afetados**: todos (app, auth-lambda, infra-k8s, infra-db)
 

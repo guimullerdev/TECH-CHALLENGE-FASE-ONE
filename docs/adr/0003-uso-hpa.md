@@ -1,6 +1,7 @@
 # ADR 0003 — Uso do Horizontal Pod Autoscaler (HPA)
 
 - **Status**: Aceita
+- **Autor(es)**: Guilherme Müller
 - **Data**: 2026-09-10 (revisada em 2026-09-13: o manifesto do HPA fica no
   repo da app, não no de infra — ver ADR 0001)
 - **Repos afetados**: `TECH-CHALLENGE-FASE-ONE` (dono do manifesto),

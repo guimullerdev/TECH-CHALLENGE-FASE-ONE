@@ -1,6 +1,7 @@
 # ADR NNNN — Título da decisão
 
 - **Status**: Proposta | Aceita | Depreciada | Substituída por ADR-XXXX
+- **Autor(es)**:
 - **Data**:
 - **Repos afetados**:
 

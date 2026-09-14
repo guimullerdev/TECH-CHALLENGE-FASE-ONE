@@ -350,8 +350,7 @@ perfil específico, por exemplo:
 
 ## Participantes
 
-1. Natália Manosso - Discord natz6 - RM371743
-2. Guilherme Müller Severo - Discord Guilherme M Severo - RM373321
+1. Guilherme Müller Severo - Discord Guilherme M Severo - RM373321
 
 ---
 

@@ -1,6 +1,7 @@
 # ADR 0002 — Estratégia de escalabilidade e separação de ambientes
 
 - **Status**: Aceita
+- **Autor(es)**: Guilherme Müller
 - **Data**: 2026-09-10
 - **Repos afetados**: `oficina-infra-k8s`, `oficina-infra-db`,
   `oficina-auth-lambda`

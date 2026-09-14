@@ -1,7 +1,7 @@
 # RFC 0002 — Banco de dados gerenciado
 
 - **Status**: Aceita
-- **Autor(es)**: TBD
+- **Autor(es)**: Guilherme Müller
 - **Data**: 2026-09-10
 - **Repos afetados**: `oficina-infra-db`, `TECH-CHALLENGE-FASE-ONE` (app)
 

@@ -159,3 +159,33 @@ jobs:
         if: env.HAS_AWS == 'true'
         run: |
           kubectl get pods,svc,hpa -n "$NAMESPACE" -l app=oficina-api
+
+      # O ARN do NLB é o que falta ao `api-gateway/` do oficina-infra-k8s para
+      # criar o VPC Link e rotear /os/*. Publicar aqui evita ter que garimpar
+      # na AWS depois de cada ambiente novo.
+      - name: Publicar ARN do NLB para o API Gateway
+        if: env.HAS_AWS == 'true'
+        run: |
+          HOST=$(kubectl get svc oficina-api -n "$NAMESPACE" \
+            -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
+
+          if [ -z "$HOST" ]; then
+            echo "Service ainda sem endereço de load balancer — o NLB pode levar alguns minutos para nascer." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          NLB_ARN=$(aws elbv2 describe-load-balancers \
+            --query "LoadBalancers[?DNSName=='$HOST'].LoadBalancerArn" --output text)
+
+          {
+            echo "### NLB do ambiente \`$NAMESPACE\`"
+            echo ""
+            echo "- DNS: \`$HOST\`"
+            echo "- ARN: \`$NLB_ARN\`"
+            echo ""
+            echo "Para rotear \`/os/*\`, aplicar o \`api-gateway/\` com:"
+            echo ""
+            echo '```bash'
+            echo "terraform apply -var=\"nlb_arn=$NLB_ARN\""
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

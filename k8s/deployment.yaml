@@ -1,12 +1,15 @@
-# Migrations run via entrypoint.sh (`prisma migrate deploy`) on every pod start,
-# per PRÉ-REQ 2 in dev-plan.md. `prisma migrate deploy` is safe under concurrent
-# execution (advisory locking), so this works with multiple replicas; the CI/CD
-# pipeline (item 6) will add an explicit `deploy-db` stage documenting this step.
+# Namespace não é declarado aqui de propósito: o mesmo manifesto é aplicado
+# em `homolog` e em `prod`, com `kubectl apply -n $NAMESPACE` decidindo qual
+# (ver ADR 0002). `${APP_IMAGE}` é substituído pelo pipeline via envsubst,
+# apontando para a tag que aquele build acabou de publicar.
+#
+# As migrations NÃO rodam aqui: são um Job aplicado antes do rollout
+# (k8s/migration-job.yaml, ver ADR 0005). Rodá-las no start do pod faria o
+# pod entrar em CrashLoop depois do rollout já ter começado.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: oficina-api
-  namespace: oficina
   labels:
     app: oficina-api
 spec:
@@ -21,7 +24,7 @@ spec:
     spec:
       containers:
         - name: oficina-api
-          image: ghcr.io/guimullerdev/tech-challenge-fase-one:latest
+          image: ${APP_IMAGE}
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
@@ -30,6 +33,11 @@ spec:
                 name: oficina-api-config
             - secretRef:
                 name: oficina-api-secret
+          env:
+            # Separa homolog de prod no New Relic — sem isso os dois
+            # ambientes aparecem misturados na mesma aplicação.
+            - name: NEW_RELIC_APP_NAME
+              value: oficina-api-${NAMESPACE}
           resources:
             requests:
               cpu: 100m

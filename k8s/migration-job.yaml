@@ -1,0 +1,47 @@
+# Migrations do Prisma, rodadas dentro do cluster (ADR 0005).
+#
+# Por que um Job e não o pipeline direto: o RDS é `publicly_accessible =
+# false`, e os runners hospedados do GitHub Actions não estão na VPC — só
+# quem roda no cluster alcança o banco. Por que não no start do pod: uma
+# migration que falha derrubaria pods já em rollout; como Job, o pipeline
+# espera o resultado e só então atualiza o Deployment.
+#
+# `${APP_IMAGE}` e `${MIGRATION_JOB_NAME}` são substituídos pelo pipeline.
+# O nome carrega o SHA do build porque Job é imutável: reaplicar com o mesmo
+# nome falharia em vez de rodar de novo.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ${MIGRATION_JOB_NAME}
+  labels:
+    app: oficina-api
+    component: migration
+spec:
+  # Uma migration que falha normalmente falha de novo (schema conflitante,
+  # não erro transitório). 2 tentativas cobrem indisponibilidade momentânea
+  # do banco sem mascarar erro real.
+  backoffLimit: 2
+  # Evita Job zumbi segurando o pipeline se o banco ficar inalcançável.
+  activeDeadlineSeconds: 300
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: oficina-api
+        component: migration
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: ${APP_IMAGE}
+          command: ["npx", "prisma", "migrate", "deploy"]
+          envFrom:
+            - secretRef:
+                name: oficina-api-secret
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

@@ -2,21 +2,20 @@ name: CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  # Deve bater com a tag em k8s/deployment.yaml e com a default de var.app_image (infra/).
-  APP_IMAGE: ghcr.io/guimullerdev/tech-challenge-fase-one:latest
+  AWS_REGION: us-east-1
+  # Precisa bater com var.cluster_name do repo oficina-infra-k8s, que é quem
+  # provisiona o cluster. Este repo só consome.
   CLUSTER_NAME: oficina-cluster
-  KIND_VERSION: v0.24.0
-  TERRAFORM_VERSION: 1.9.8
 
 jobs:
-  # --- Build da aplicação + execução dos testes automatizados ---------------
+  # --- Build da aplicação + testes automatizados ----------------------------
   build-and-test:
     runs-on: ubuntu-latest
     steps:
@@ -29,18 +28,20 @@ jobs:
       - run: corepack enable && corepack prepare yarn@1.22.22 --activate
       - run: yarn install --frozen-lockfile
       - run: yarn build
-      # test:cov aplica o threshold de cobertura (coverageThreshold do package.json);
-      # a pipeline falha se regredir.
+      # test:cov aplica o threshold de cobertura (coverageThreshold do
+      # package.json); a pipeline falha se regredir.
       - run: yarn test:cov
 
   # --- Build da imagem Docker + publicação no GHCR --------------------------
   docker-build-push:
     needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -54,6 +55,9 @@ jobs:
         run: |
           base=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           echo "base=$base" >> "$GITHUB_OUTPUT"
+          # A tag de deploy é o SHA, nunca `latest`: garante que o rollout
+          # aponta exatamente para o que este build produziu.
+          echo "image=$base:${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/build-push-action@v6
         with:
@@ -63,65 +67,92 @@ jobs:
             ${{ steps.meta.outputs.base }}:${{ github.sha }}
             ${{ steps.meta.outputs.base }}:latest
 
-  # --- Deploy real: cluster kind efêmero + banco + manifestos, tudo via Terraform ---
-  # Roda de ponta a ponta no runner (VM efêmera): sobe um cluster kind, aplica o
-  # banco (kubernetes_*), o metrics-server e os manifestos do app (kubectl_manifest),
-  # valida o rollout/HPA/health e derruba o cluster. Sem depender de cluster externo.
+  # --- Deploy no EKS --------------------------------------------------------
+  # Este repo é dono do deploy da própria aplicação: o repo de infraestrutura
+  # (oficina-infra-k8s) só provisiona o cluster e expõe como alcançá-lo.
+  # Ver ADR 0001.
   deploy:
-    needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: docker-build-push
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    env:
+      HAS_AWS: ${{ secrets.AWS_ACCESS_KEY_ID != '' && 'true' || 'false' }}
+      APP_IMAGE: ${{ needs.docker-build-push.outputs.image }}
+      # Branch decide o ambiente (ADR 0002): develop → homolog, main → prod.
+      NAMESPACE: ${{ github.ref == 'refs/heads/main' && 'prod' || 'homolog' }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build da imagem Docker (para carregar no kind)
-        run: docker build -t "$APP_IMAGE" .
-
-      - name: Instalar kind
+      - name: Aviso — deploy pulado
+        if: env.HAS_AWS == 'false'
         run: |
-          curl -Lo ./kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
-          chmod +x ./kind
-          sudo mv ./kind /usr/local/bin/kind
-          kind version
+          echo "::warning::Secrets de AWS não configurados; nada foi publicado no cluster."
+          echo "::warning::Imagem publicada no GHCR: $APP_IMAGE"
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - uses: aws-actions/configure-aws-credentials@v4
+        if: env.HAS_AWS == 'true'
         with:
-          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # Só usado em conta AWS Academy Learner Lab (credencial temporária).
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Terraform init
-        run: terraform -chdir=infra init
+      - name: Configurar kubeconfig
+        if: env.HAS_AWS == 'true'
+        run: aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
 
-      # Os providers kubernetes/kubectl se configuram a partir dos atributos do
-      # kind_cluster (endpoint, certificados). Num apply único do zero esses
-      # atributos ainda não existem, e o provider kubectl falha ("no configuration
-      # has been provided"). Por isso aplicamos em duas etapas: primeiro só o
-      # cluster (gera os atributos), depois o restante.
-      - name: Deploy — provisiona o cluster kind
-        run: terraform -chdir=infra apply -auto-approve -target=kind_cluster.this
-
-      - name: Deploy — banco, metrics-server e manifestos do app (via terraform)
-        run: terraform -chdir=infra apply -auto-approve
-
-      - name: Configurar kubeconfig do cluster kind
+      # O Secret é criado a partir dos secrets do repositório, nunca de um
+      # arquivo versionado (ver ADR 0001). DATABASE_URL vem do output de
+      # oficina-infra-db/bootstrap-db.
+      - name: Publicar Secret da aplicação
+        if: env.HAS_AWS == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          NEW_RELIC_LICENSE_KEY: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
         run: |
-          kind get kubeconfig --name "$CLUSTER_NAME" > "$HOME/kubeconfig"
-          echo "KUBECONFIG=$HOME/kubeconfig" >> "$GITHUB_ENV"
+          kubectl create secret generic oficina-api-secret \
+            --namespace "$NAMESPACE" \
+            --from-literal=DATABASE_URL="$DATABASE_URL" \
+            --from-literal=JWT_SECRET="$JWT_SECRET" \
+            --from-literal=WEBHOOK_SECRET="$WEBHOOK_SECRET" \
+            --from-literal=NEW_RELIC_LICENSE_KEY="$NEW_RELIC_LICENSE_KEY" \
+            --from-literal=NEW_RELIC_ENABLED="true" \
+            --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Smoke test — rollout, HPA e pods
+      - name: Aplicar ConfigMap e Service
+        if: env.HAS_AWS == 'true'
         run: |
-          kubectl rollout status deployment/oficina-api -n oficina --timeout=180s
-          kubectl get hpa -n oficina
-          kubectl get pods -n oficina
+          kubectl apply -n "$NAMESPACE" -f k8s/configmap.yaml
+          kubectl apply -n "$NAMESPACE" -f k8s/service.yaml
 
-      - name: Smoke test — GET /health via port-forward
+      # Migrations antes do rollout: se o schema falhar, a versão nova do
+      # código nunca chega a subir contra um banco desatualizado (ADR 0005).
+      - name: Rodar migrations (Job) e esperar terminar
+        if: env.HAS_AWS == 'true'
         run: |
-          kubectl port-forward -n oficina svc/oficina-api 8080:80 &
-          PF_PID=$!
-          sleep 5
-          curl -sf http://localhost:8080/health
-          kill $PF_PID
+          export MIGRATION_JOB_NAME="oficina-migrate-${GITHUB_SHA::12}"
+          envsubst < k8s/migration-job.yaml | kubectl apply -n "$NAMESPACE" -f -
+          if ! kubectl wait -n "$NAMESPACE" --for=condition=complete \
+               "job/$MIGRATION_JOB_NAME" --timeout=300s; then
+            echo "::error::Migration falhou — rollout abortado. Logs do Job:"
+            kubectl logs -n "$NAMESPACE" "job/$MIGRATION_JOB_NAME" --tail=100 || true
+            exit 1
+          fi
 
-      - name: Teardown (cluster efêmero)
-        if: always()
-        run: terraform -chdir=infra destroy -auto-approve || kind delete cluster --name "$CLUSTER_NAME" || true
+      - name: Aplicar Deployment e HPA
+        if: env.HAS_AWS == 'true'
+        run: |
+          envsubst < k8s/deployment.yaml | kubectl apply -n "$NAMESPACE" -f -
+          kubectl apply -n "$NAMESPACE" -f k8s/hpa.yaml
+
+      - name: Aguardar rollout
+        if: env.HAS_AWS == 'true'
+        run: kubectl rollout status -n "$NAMESPACE" deployment/oficina-api --timeout=300s
+
+      - name: Estado final do ambiente
+        if: env.HAS_AWS == 'true'
+        run: |
+          kubectl get pods,svc,hpa -n "$NAMESPACE" -l app=oficina-api

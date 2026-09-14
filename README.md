@@ -112,46 +112,71 @@ docker compose down -v   # para e apaga o volume do banco
 
 ---
 
-## Deploy em Kubernetes via Terraform (local)
+## Deploy em Kubernetes
 
-Pré-requisitos: [Docker](https://docs.docker.com/get-docker/),
-[kind](https://kind.sigs.k8s.io/), [Terraform](https://www.terraform.io/) e
-[kubectl](https://kubernetes.io/docs/tasks/tools/).
+A partir da Fase 3 o `infra/` (Terraform de cluster e banco) **saiu deste
+repositório**. A divisão é:
+
+| Onde | Responsabilidade |
+|---|---|
+| `oficina-infra-k8s` | Provisiona o cluster EKS: node groups, rede, add-ons, namespaces |
+| `oficina-infra-db` | Provisiona o RDS PostgreSQL |
+| **Este repo (`k8s/`)** | `Deployment`, `Service`, `HPA`, `ConfigMap` e o Job de migration — e o pipeline que aplica tudo isso |
+
+A fronteira segue a ADR 0001: o repo de infraestrutura provisiona o
+ambiente, e o ciclo de vida da aplicação (incluindo o deploy dela) pertence
+a quem é dono do código.
+
+### Como o deploy acontece
+
+O pipeline deste repo, depois de publicar a imagem:
+
+1. `aws eks update-kubeconfig` — autentica no cluster provisionado pelo
+   `oficina-infra-k8s`
+2. Cria o `Secret` a partir dos secrets do repositório (`DATABASE_URL`,
+   `JWT_SECRET`, …) — nunca de arquivo versionado
+3. Aplica `ConfigMap` e `Service`
+4. Aplica o **Job de migration e espera terminar** — se o schema falhar, o
+   rollout é abortado e a versão nova nunca sobe contra um banco
+   desatualizado (ADR 0005)
+5. Só então aplica `Deployment` e `HPA`, e aguarda o rollout
+
+A branch decide o ambiente: `develop` → namespace `homolog`, `main` →
+namespace `prod` (ADR 0002). A imagem é sempre a tag do **SHA** do commit,
+nunca `latest`, para o rollout apontar exatamente para o que aquele build
+produziu.
+
+### Manifestos (`k8s/`)
+
+| Arquivo | O que é |
+|---|---|
+| `deployment.yaml` | Deployment da API (2 réplicas, probes em `/health`) |
+| `service.yaml` | Service que expõe a API no cluster |
+| `hpa.yaml` | HPA de 2 a 5 réplicas a 70% de CPU (ADR 0003) |
+| `configmap.yaml` | Config não sensível (`NODE_ENV`, `PORT`, …) |
+| `migration-job.yaml` | Job que roda `prisma migrate deploy` dentro do cluster |
+| `secret.example.yaml` | **Exemplo apenas** — mostra o formato esperado; o Secret real é criado pelo pipeline |
+
+Nenhum manifesto declara `namespace`: o mesmo arquivo serve aos dois
+ambientes, e o `kubectl apply -n` do pipeline decide qual. `${APP_IMAGE}` e
+`${NAMESPACE}` são substituídos via `envsubst` na hora do deploy.
+
+### Rodando os manifestos à mão
 
 ```bash
-# 1. Buildar a imagem com a tag que os manifestos esperam
-docker build -t ghcr.io/guimullerdev/tech-challenge-fase-one:latest .
+export APP_IMAGE=ghcr.io/guimullerdev/tech-challenge-fase-one:<sha>
+export NAMESPACE=homolog
+export MIGRATION_JOB_NAME=oficina-migrate-manual
 
-# 2. Provisionar cluster + banco + metrics-server + app
-# (aplicado em duas etapas: os providers kubernetes/kubectl dependem dos
-#  atributos do cluster, que só existem após a criação do kind_cluster)
-cd infra
-terraform init
-terraform apply -auto-approve -target=kind_cluster.this
-terraform apply -auto-approve
-
-# 3. Acompanhar
-export KUBECONFIG="$(terraform output -raw kubeconfig_path)"
-kubectl get pods -n oficina
-kubectl get hpa  -n oficina
-
-# 4. Acessar a API
-kubectl port-forward -n oficina svc/oficina-api 8080:80
-# → http://localhost:8080/health  e  http://localhost:8080/api
-
-# 5. Destruir
-terraform destroy -auto-approve
+kubectl apply -n "$NAMESPACE" -f k8s/configmap.yaml -f k8s/service.yaml
+envsubst < k8s/migration-job.yaml | kubectl apply -n "$NAMESPACE" -f -
+kubectl wait -n "$NAMESPACE" --for=condition=complete job/$MIGRATION_JOB_NAME --timeout=300s
+envsubst < k8s/deployment.yaml  | kubectl apply -n "$NAMESPACE" -f -
+kubectl apply -n "$NAMESPACE" -f k8s/hpa.yaml
 ```
 
-### Recursos criados pelo Terraform (`infra/`)
-
-| Arquivo | Recursos |
-|---|---|
-| `cluster.tf` | Cluster kind (`kind_cluster`) |
-| `database.tf` | Namespace, Secret de credenciais, PVC, Deployment e Service do Postgres |
-| `app.tf` | Carga da imagem no kind, metrics-server e manifestos do app (`k8s/`) via `kubectl_manifest` |
-| `providers.tf` / `versions.tf` | Providers `kind`, `kubernetes`, `alekc/kubectl`, `null` |
-| `variables.tf` / `outputs.tf` | Variáveis (nome do cluster, credenciais do banco, imagem) e outputs |
+O `Secret` precisa existir antes — crie com `kubectl create secret generic
+oficina-api-secret` (ver o formato em `k8s/secret.example.yaml`).
 
 ---
 

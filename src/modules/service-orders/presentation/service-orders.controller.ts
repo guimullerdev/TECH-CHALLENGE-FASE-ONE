@@ -13,6 +13,7 @@ import {
   ParseBoolPipe,
   DefaultValuePipe,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 
@@ -42,6 +43,7 @@ import { RealizarServicoDto } from '../application/dto/realizar-servico.dto';
 import { WebhookNotificacaoDto } from '../application/dto/webhook-notificacao.dto';
 import { ProcessarWebhookNotificacaoUseCase } from '../application/use-cases/processar-webhook-notificacao.usecase';
 import { WebhookAuthGuard } from './guards/webhook-auth.guard';
+import { OsStatusMetricsInterceptor } from './interceptors/os-status-metrics.interceptor';
 import { StatusOS } from '../domain/entities/service-orders.entity';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { CLIENTE_ROLE, STAFF_ROLES, UserRole } from '../../auth/domain/enums/user-role.enum';
@@ -52,6 +54,9 @@ import {
     isCliente,
 } from '../../auth/decorators/current-user.decorator';
 
+// Emite o evento de transição de status em toda rota que devolve uma OS —
+// é o que alimenta o dashboard de tempo médio por status.
+@UseInterceptors(OsStatusMetricsInterceptor)
 @ApiTags('os')
 @ApiBearerAuth()
 @Controller('os')

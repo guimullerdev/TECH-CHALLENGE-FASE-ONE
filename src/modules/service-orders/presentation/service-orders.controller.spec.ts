@@ -20,6 +20,7 @@ import { GetTempoMedioOsUseCase } from '../application/use-cases/get-tempo-medio
 import { ConsultaPublicaOsUseCase } from '../application/use-cases/consulta-publica-os.usecase';
 import { ProcessarWebhookNotificacaoUseCase } from '../application/use-cases/processar-webhook-notificacao.usecase';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { PinoLogger } from 'nestjs-pino';
 import { AuthenticatedActor } from '../../auth/decorators/current-user.decorator';
 import { CLIENTE_ROLE, UserRole } from '../../auth/domain/enums/user-role.enum';
 
@@ -93,6 +94,8 @@ describe('ServiceOrdersController', () => {
                 { provide: GetTempoMedioOsUseCase, useValue: getTempoMedioUC },
                 { provide: ConsultaPublicaOsUseCase, useValue: consultaPublicaUC },
                 { provide: ProcessarWebhookNotificacaoUseCase, useValue: processarWebhookUC },
+                // Exigido pelo OsStatusMetricsInterceptor aplicado ao controller.
+                { provide: PinoLogger, useValue: { info: jest.fn(), error: jest.fn() } },
             ],
         })
             .overrideGuard(JwtAuthGuard)

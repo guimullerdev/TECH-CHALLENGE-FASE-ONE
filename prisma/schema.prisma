@@ -85,14 +85,14 @@ model Veiculo {
 }
 
 model Servico {
-  id             String   @id @default(uuid())
-  nome           String
-  descricao      String?
-  precoBase      Decimal  @map("preco_base") @db.Decimal(10, 2)
-  tempoEstimado  Int?     @map("tempo_estimado")
-  ativo          Boolean  @default(true)
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(uuid())
+  nome          String
+  descricao     String?
+  precoBase     Decimal  @map("preco_base") @db.Decimal(10, 2)
+  tempoEstimado Int?     @map("tempo_estimado")
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   osItensServico OsItemServico[]
 
@@ -154,14 +154,30 @@ model OrdemDeServico {
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  cliente        Cliente               @relation(fields: [clienteId], references: [id])
-  veiculo        Veiculo               @relation(fields: [veiculoId], references: [id])
-  osItensServico OsItemServico[]
-  osItensPeca    OsItemPeca[]
-  orcamento      Orcamento?
-  movimentacoes  MovimentacaoEstoque[]
+  cliente         Cliente               @relation(fields: [clienteId], references: [id])
+  veiculo         Veiculo               @relation(fields: [veiculoId], references: [id])
+  osItensServico  OsItemServico[]
+  osItensPeca     OsItemPeca[]
+  orcamento       Orcamento?
+  movimentacoes   MovimentacaoEstoque[]
+  historicoStatus HistoricoStatusOS[]
 
   @@map("ordens_de_servico")
+}
+
+/// Trilha de transições de status da OS. Alimenta o acompanhamento exposto ao
+/// cliente e a métrica de tempo médio por status (ver docs/observabilidade).
+model HistoricoStatusOS {
+  id             String    @id @default(uuid())
+  osId           String    @map("os_id")
+  statusAnterior StatusOS? @map("status_anterior")
+  statusNovo     StatusOS  @map("status_novo")
+  data           DateTime  @default(now())
+
+  os OrdemDeServico @relation(fields: [osId], references: [id], onDelete: Cascade)
+
+  @@index([osId, data])
+  @@map("historico_status_os")
 }
 
 model OsItemServico {

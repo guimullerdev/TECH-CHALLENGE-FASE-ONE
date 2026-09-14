@@ -23,6 +23,7 @@ function byStatusPriorityThenOldest(a: OrdemDeServico, b: OrdemDeServico): numbe
 const includeItems = {
     osItensServico: true,
     osItensPeca: true,
+    historicoStatus: { orderBy: { data: 'asc' } },
 } as const;
 
 @Injectable()
@@ -51,7 +52,18 @@ export class OrdemDeServicoPrismaRepository implements IOrdemDeServicoRepository
 
     async create(os: OrdemDeServico): Promise<OrdemDeServico> {
         const raw = await this.prisma.ordemDeServico.create({
-            data: ServiceOrderMapper.toPrisma(os),
+            data: {
+                ...ServiceOrderMapper.toPrisma(os),
+                // A OS nasce com o registro do status inicial (RECEBIDA), que
+                // é o marco a partir do qual a primeira transição é medida.
+                historicoStatus: {
+                    createMany: {
+                        data: ServiceOrderMapper.historicoToPrisma(os).map(
+                            ({ osId: _osId, ...linha }) => linha,
+                        ),
+                    },
+                },
+            },
             include: includeItems,
         });
         return ServiceOrderMapper.toDomain(raw);
@@ -69,6 +81,17 @@ export class OrdemDeServicoPrismaRepository implements IOrdemDeServicoRepository
                     updatedAt: os.updatedAt,
                 },
             });
+
+            // `skipDuplicates` pela PK: as entradas já persistidas são
+            // ignoradas e só a transição nova é inserida, sem precisar
+            // comparar listas à mão.
+            const historico = ServiceOrderMapper.historicoToPrisma(os);
+            if (historico.length > 0) {
+                await tx.historicoStatusOS.createMany({
+                    data: historico,
+                    skipDuplicates: true,
+                });
+            }
 
             // Sync OsItensServico
             await tx.osItemServico.deleteMany({ where: { osId: os.id } });

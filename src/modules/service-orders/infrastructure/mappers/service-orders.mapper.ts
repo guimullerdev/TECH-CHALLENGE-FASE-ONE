@@ -34,6 +34,12 @@ type PrismaOSFull = {
         precoUnitario: Prisma.Decimal;
         utilizada: boolean;
     }>;
+    historicoStatus?: Array<{
+        id: string;
+        statusAnterior: StatusOS | null;
+        statusNovo: StatusOS;
+        data: Date;
+    }>;
 };
 
 export class ServiceOrderMapper {
@@ -65,7 +71,16 @@ export class ServiceOrderMapper {
             descricaoProblema: raw.descricaoProblema ?? undefined,
             servicos,
             pecas,
-            historicoStatus: [],
+            // OS criadas antes da tabela de histórico existir vêm com lista
+            // vazia — é o mesmo comportamento de antes, sem regressão.
+            historicoStatus: (raw.historicoStatus ?? []).map(h =>
+                HistoricoStatusOS.restore({
+                    id: h.id,
+                    statusAnterior: h.statusAnterior as unknown as DomainStatusOS | null,
+                    statusNovo: h.statusNovo as unknown as DomainStatusOS,
+                    data: h.data,
+                }),
+            ),
             dataAbertura: raw.dataAbertura,
             dataFechamento: raw.dataFechamento ?? undefined,
             createdAt: raw.createdAt,
@@ -87,5 +102,16 @@ export class ServiceOrderMapper {
             createdAt: os.createdAt,
             updatedAt: os.updatedAt,
         };
+    }
+
+    /** Linhas de histórico prontas para `createMany`. */
+    static historicoToPrisma(os: OrdemDeServico) {
+        return os.historicoStatus.map(h => ({
+            id: h.id,
+            osId: os.id,
+            statusAnterior: (h.statusAnterior ?? null) as unknown as StatusOS | null,
+            statusNovo: h.statusNovo as unknown as StatusOS,
+            data: h.data,
+        }));
     }
 }

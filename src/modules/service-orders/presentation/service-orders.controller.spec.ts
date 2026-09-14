@@ -20,8 +20,13 @@ import { GetTempoMedioOsUseCase } from '../application/use-cases/get-tempo-medio
 import { ConsultaPublicaOsUseCase } from '../application/use-cases/consulta-publica-os.usecase';
 import { ProcessarWebhookNotificacaoUseCase } from '../application/use-cases/processar-webhook-notificacao.usecase';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { AuthenticatedActor } from '../../auth/decorators/current-user.decorator';
+import { CLIENTE_ROLE, UserRole } from '../../auth/domain/enums/user-role.enum';
 
 const uc = (val: any = { id: 'os-1' }) => ({ execute: jest.fn().mockResolvedValue(val), executeAll: jest.fn().mockResolvedValue([val]) });
+
+const STAFF: AuthenticatedActor = { sub: 'user-1', role: UserRole.ATENDENTE, email: 'a@b.c' };
+const CLIENTE: AuthenticatedActor = { sub: 'cliente-1', role: CLIENTE_ROLE, documento: '12345678901' };
 
 describe('ServiceOrdersController', () => {
     let controller: ServiceOrdersController;
@@ -196,8 +201,26 @@ describe('ServiceOrdersController', () => {
         });
     });
 
-    it('getAcompanhamento delegates to GetOsAcompanhamentoUseCase', async () => {
-        await controller.getAcompanhamento('os-1');
-        expect(getAcompanhamentoUC.execute).toHaveBeenCalledWith('os-1');
+    it('getAcompanhamento não restringe quando quem chama é staff', async () => {
+        await controller.getAcompanhamento(STAFF, 'os-1');
+        expect(getAcompanhamentoUC.execute).toHaveBeenCalledWith('os-1', undefined);
+    });
+
+    it('getAcompanhamento restringe a OS ao próprio cliente', async () => {
+        await controller.getAcompanhamento(CLIENTE, 'os-1');
+        expect(getAcompanhamentoUC.execute).toHaveBeenCalledWith('os-1', 'cliente-1');
+    });
+
+    it('getStatus restringe a OS ao próprio cliente', async () => {
+        await controller.getStatus(CLIENTE, 'os-1');
+        expect(getAcompanhamentoUC.execute).toHaveBeenCalledWith('os-1', 'cliente-1');
+    });
+
+    it('findMinhas lista apenas as OS do cliente do token', async () => {
+        await controller.findMinhas(CLIENTE);
+        expect(getUC.executeAll).toHaveBeenCalledWith({
+            clienteId: 'cliente-1',
+            incluirArquivadas: true,
+        });
     });
 });

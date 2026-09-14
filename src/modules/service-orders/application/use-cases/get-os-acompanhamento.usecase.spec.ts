@@ -102,4 +102,39 @@ describe('GetOsAcompanhamentoUseCase', () => {
         expect(result.dataAbertura).toBeInstanceOf(Date);
         expect(result.dataFechamento).toBeUndefined();
     });
+
+    describe('restrição por cliente', () => {
+        it('devolve a OS quando ela pertence ao cliente informado', async () => {
+            const repo = mockRepo();
+            repo.findById.mockResolvedValue(makeOs());
+
+            const useCase = new GetOsAcompanhamentoUseCase(repo as any);
+            const result = await useCase.execute('os-1', 'c-1');
+
+            expect(result.id).toBe('os-1');
+        });
+
+        it('esconde a OS de outro cliente com 404, não 403', async () => {
+            const repo = mockRepo();
+            repo.findById.mockResolvedValue(makeOs());
+
+            const useCase = new GetOsAcompanhamentoUseCase(repo as any);
+
+            // 404 de propósito: um 403 confirmaria que a OS existe para quem
+            // não deveria nem saber disso.
+            await expect(useCase.execute('os-1', 'outro-cliente')).rejects.toThrow(
+                NotFoundException,
+            );
+        });
+
+        it('não restringe nada quando o clienteId é omitido (staff)', async () => {
+            const repo = mockRepo();
+            repo.findById.mockResolvedValue(makeOs());
+
+            const useCase = new GetOsAcompanhamentoUseCase(repo as any);
+            const result = await useCase.execute('os-1');
+
+            expect(result.id).toBe('os-1');
+        });
+    });
 });

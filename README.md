@@ -163,12 +163,77 @@ terraform destroy -auto-approve
 Destaques da Fase 2:
 
 - `POST /os` — abertura de OS retornando o identificador único.
-- `GET /os/:id/status` — consulta pública do status da OS.
+- `GET /os/:id/status` — consulta do status da OS.
 - `GET /os` — listagem ordenada por prioridade de status (Em Execução >
   Aguardando Aprovação > Diagnóstico > Recebida), mais antigas primeiro, com
   exclusão lógica das arquivadas.
 - `POST /os/webhook/notificacao` — webhook externo que aprova/reprova o
   orçamento de uma OS (autenticado por `WEBHOOK_SECRET`).
+
+### Autenticação: dois fluxos, dois atores
+
+A partir da Fase 3 existem **dois** caminhos de autenticação, para dois
+atores diferentes. Os dois emitem um JWT assinado com o mesmo `JWT_SECRET`,
+e o `JwtAuthGuard` valida qualquer um deles do mesmo jeito.
+
+| | Cliente da oficina | Staff (ADMIN / ATENDENTE / MECANICO) |
+|---|---|---|
+| Como autentica | CPF, via `POST /auth/cpf` no API Gateway | Email + senha, via `POST /auth/login` |
+| Quem emite o token | `oficina-auth-lambda` (Function Serverless) | A própria aplicação |
+| Claim `role` | `CLIENTE` | `ADMIN`, `ATENDENTE` ou `MECANICO` |
+| O que é o `sub` | `id` do `Cliente` | `id` do `User` |
+| Tem senha? | Não, nunca | Sim (bcrypt) |
+
+O cliente **não** existe como `User` no banco — por isso `CLIENTE` fica fora
+do enum `UserRole`, que mapeia a tabela `users`. Detalhes na RFC 0003 e na
+ADR 0001.
+
+### Rotas por perfil
+
+**Públicas (sem token).** São só as que realmente não podem exigir
+autenticação:
+
+| Rota | Por que é pública |
+|---|---|
+| `POST /auth/login`, `/auth/register`, `/auth/refresh` | É onde o token é obtido |
+| `GET /health` | Healthcheck consumido pelo Kubernetes e pelo monitoramento |
+| `GET /api` | Swagger |
+| `POST /os/webhook/notificacao` | Integração externa — tem validação própria via `WEBHOOK_SECRET`, não JWT |
+| `GET /os/consulta?numero=&documento=` | Página pública de acompanhamento, no modelo de rastreio de encomenda — ver abaixo |
+
+Sobre a consulta pública: ela exige o **par** número da OS + documento do
+cliente, e o use case só devolve a OS se os dois baterem. É uma decisão de
+produto deliberada (o cliente acompanha o serviço sem precisar de conta),
+com o par funcionando como credencial de baixa fricção — o mesmo modelo de
+um código de rastreio.
+
+**Do cliente (token com `role: CLIENTE`).** Todas restritas ao próprio
+`sub` do token — não há como ver dado de outro cliente trocando um
+parâmetro:
+
+| Rota | Escopo |
+|---|---|
+| `GET /os/me` | Só as OS do cliente do token |
+| `GET /os/:id/status` | 404 se a OS não for dele |
+| `GET /os/:id/acompanhamento` | 404 se a OS não for dele |
+
+As duas últimas eram públicas e passaram a exigir token: diferente da
+`/os/consulta`, elas aceitavam **só o UUID**, sem nenhuma conferência de
+dono — quem tivesse o identificador lia a OS de qualquer pessoa.
+
+> O 404 (em vez de 403) é deliberado: responder "existe, mas não é sua"
+> confirmaria a existência da OS para quem não deveria saber.
+
+**Do staff (token com role interna).** Todo o resto — CRUD de clientes,
+veículos, serviços, peças, estoque, orçamentos, e o ciclo de vida da OS
+(diagnóstico → orçamento → execução → entrega). Algumas operações exigem
+perfil específico, por exemplo:
+
+| Rota | Perfis |
+|---|---|
+| `PATCH /os/:id/servicos/:itemId/realizar` | `MECANICO`, `ADMIN` |
+| `PATCH /os/:id/pecas/:itemId/utilizar` | `MECANICO`, `ADMIN` |
+| `GET /os` (listagem geral) | Qualquer perfil de staff |
 
 ### Todas as rotas
 

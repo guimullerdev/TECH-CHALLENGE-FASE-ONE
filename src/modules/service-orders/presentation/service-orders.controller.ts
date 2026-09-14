@@ -44,8 +44,13 @@ import { ProcessarWebhookNotificacaoUseCase } from '../application/use-cases/pro
 import { WebhookAuthGuard } from './guards/webhook-auth.guard';
 import { StatusOS } from '../domain/entities/service-orders.entity';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { UserRole } from '../../auth/domain/enums/user-role.enum';
+import { CLIENTE_ROLE, STAFF_ROLES, UserRole } from '../../auth/domain/enums/user-role.enum';
 import { Public } from '../../auth/decorators/public.decorator';
+import {
+    AuthenticatedActor,
+    CurrentUser,
+    isCliente,
+} from '../../auth/decorators/current-user.decorator';
 
 @ApiTags('os')
 @ApiBearerAuth()
@@ -96,7 +101,31 @@ export class ServiceOrdersController {
         return this.createOsUseCase.execute(dto);
     }
 
+    /**
+     * Quando quem chama é o cliente, devolve o id dele para restringir a
+     * consulta às próprias OS; para staff devolve `undefined`, ou seja, sem
+     * restrição. O `sub` de um token de cliente é o `clienteId` (ver ADR 0001).
+     */
+    private escopoDoCliente(actor: AuthenticatedActor): string | undefined {
+        return isCliente(actor) ? actor.sub : undefined;
+    }
+
+    @Get('me')
+    @Roles(CLIENTE_ROLE)
+    @ApiOperation({
+        summary: 'Listar as ordens de serviço do cliente autenticado',
+        description:
+            'Exclusiva do cliente: usa o `sub` do token emitido pela Lambda de ' +
+            'autenticação por CPF, então não há como listar OS de outra pessoa.',
+    })
+    @ApiResponse({ status: 200, description: 'OS do próprio cliente' })
+    @ApiResponse({ status: 403, description: 'Token não é de cliente' })
+    findMinhas(@CurrentUser() actor: AuthenticatedActor) {
+        return this.getOsUseCase.executeAll({ clienteId: actor.sub, incluirArquivadas: true });
+    }
+
     @Get()
+    @Roles(...STAFF_ROLES)
     @ApiOperation({ summary: 'Listar ordens de serviço com filtros opcionais. Por padrão exclui OS arquivadas (FINALIZADA/ENTREGUE). Ordenadas por prioridade: EM_EXECUCAO > AGUARDANDO_APROVACAO > EM_DIAGNOSTICO > RECEBIDA, mais antigas primeiro dentro de cada grupo.' })
     @ApiQuery({ name: 'status', required: false, enum: StatusOS })
     @ApiQuery({ name: 'clienteId', required: false })
@@ -114,7 +143,13 @@ export class ServiceOrdersController {
 
     @Get('consulta')
     @Public()
-    @ApiOperation({ summary: 'Consulta pública da OS pelo cliente (sem autenticação)' })
+    @ApiOperation({
+        summary: 'Consulta pública da OS pelo cliente (sem autenticação)',
+        description:
+            'Pública por design: alimenta a página de acompanhamento, no mesmo modelo de ' +
+            'rastreio de encomenda. Exige o par número da OS + documento do cliente, e o ' +
+            'use case só devolve a OS se os dois baterem.',
+    })
     @ApiQuery({ name: 'numero', required: true, description: 'Número da OS' })
     @ApiQuery({ name: 'documento', required: true, description: 'CPF ou CNPJ do cliente (somente dígitos)' })
     @ApiResponse({ status: 200, description: 'Status e dados públicos da OS' })
@@ -151,22 +186,21 @@ export class ServiceOrdersController {
     }
 
     @Get(':id/status')
-    @Public()
-    @ApiOperation({ summary: 'Consultar status atual da OS (sem autenticação)' })
+    @ApiOperation({ summary: 'Consultar status atual da OS' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })
     @ApiResponse({ status: 200, description: 'Status atual e histórico de transições' })
     @ApiResponse({ status: 404, description: 'OS não encontrada' })
-    getStatus(@Param('id') id: string) {
-        return this.getAcompanhamentoUseCase.execute(id);
+    getStatus(@CurrentUser() actor: AuthenticatedActor, @Param('id') id: string) {
+        return this.getAcompanhamentoUseCase.execute(id, this.escopoDoCliente(actor));
     }
 
     @Get(':id/acompanhamento')
-    @ApiOperation({ summary: 'Consultar acompanhamento público da OS pelo cliente' })
+    @ApiOperation({ summary: 'Consultar acompanhamento da OS' })
     @ApiParam({ name: 'id', description: 'UUID da OS' })
     @ApiResponse({ status: 200, description: 'Status atual e histórico de transições' })
     @ApiResponse({ status: 404, description: 'OS não encontrada' })
-    getAcompanhamento(@Param('id') id: string) {
-        return this.getAcompanhamentoUseCase.execute(id);
+    getAcompanhamento(@CurrentUser() actor: AuthenticatedActor, @Param('id') id: string) {
+        return this.getAcompanhamentoUseCase.execute(id, this.escopoDoCliente(actor));
     }
 
     @Get(':id/orcamento')

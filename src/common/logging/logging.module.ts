@@ -62,5 +62,8 @@ export const CORRELATION_ID_HEADER = 'x-request-id';
       },
     }),
   ],
+  // Reexporta para o `PinoLogger` poder ser injetado fora deste módulo —
+  // o filtro global de exceções depende dele para logar de forma estruturada.
+  exports: [LoggerModule],
 })
 export class LoggingModule {}

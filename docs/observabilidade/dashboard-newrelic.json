@@ -1,0 +1,136 @@
+{
+  "name": "Oficina — Tech Challenge Fase 3",
+  "description": "Os três painéis exigidos pelo PDF da Fase 3, mais latência e saúde. Importar em New Relic → Dashboards → Import dashboard, e trocar ACCOUNT_ID pelo id da conta.",
+  "permissions": "PUBLIC_READ_WRITE",
+  "pages": [
+    {
+      "name": "Ordens de Serviço",
+      "description": "Painéis nominalmente exigidos pelo PDF",
+      "widgets": [
+        {
+          "title": "Volume diário de ordens de serviço",
+          "layout": { "column": 1, "row": 1, "width": 4, "height": 3 },
+          "visualization": { "id": "viz.line" },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountIds": [0],
+                "query": "SELECT count(*) AS 'OS abertas' FROM Log WHERE service = 'oficina-api' AND req.method = 'POST' AND req.url = '/os' AND res.statusCode = 201 TIMESERIES 1 day SINCE 30 days ago"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Tempo médio por status (minutos)",
+          "layout": { "column": 5, "row": 1, "width": 4, "height": 3 },
+          "visualization": { "id": "viz.bar" },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountIds": [0],
+                "query": "SELECT average(duracaoSegundos) / 60 AS 'Minutos' FROM Log WHERE event = 'os.status.transicao' FACET statusAnterior SINCE 7 days ago"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Erros e falhas nas integrações",
+          "layout": { "column": 9, "row": 1, "width": 4, "height": 3 },
+          "visualization": { "id": "viz.line" },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountIds": [0],
+                "query": "SELECT count(*) FROM Log WHERE event IN ('os.processamento.falha', 'requisicao.falha') FACET event TIMESERIES 1 hour SINCE 24 hours ago"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Transições de status ao longo do tempo",
+          "layout": { "column": 1, "row": 4, "width": 6, "height": 3 },
+          "visualization": { "id": "viz.area" },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountIds": [0],
+                "query": "SELECT count(*) FROM Log WHERE event = 'os.status.transicao' FACET statusNovo TIMESERIES 1 hour SINCE 24 hours ago"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Falhas recentes (com correlationId para investigar)",
+          "layout": { "column": 7, "row": 4, "width": 6, "height": 3 },
+          "visualization": { "id": "viz.table" },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountIds": [0],
+                "query": "SELECT timestamp, correlationId, url, statusCode, `exception.message` FROM Log WHERE event IN ('os.processamento.falha', 'requisicao.falha') LIMIT 50 SINCE 24 hours ago"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Saúde da aplicação",
+      "description": "Latência, erros e infraestrutura",
+      "widgets": [
+        {
+          "title": "Latência das APIs (p50 / p95 / p99)",
+          "layout": { "column": 1, "row": 1, "width": 6, "height": 3 },
+          "visualization": { "id": "viz.line" },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountIds": [0],
+                "query": "SELECT percentile(duration, 50, 95, 99) FROM Transaction WHERE appName LIKE 'oficina-api%' TIMESERIES SINCE 6 hours ago"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Requisições por status HTTP",
+          "layout": { "column": 7, "row": 1, "width": 6, "height": 3 },
+          "visualization": { "id": "viz.line" },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountIds": [0],
+                "query": "SELECT count(*) FROM Log WHERE service = 'oficina-api' AND res.statusCode IS NOT NULL FACET res.statusCode TIMESERIES 5 minutes SINCE 3 hours ago"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Rotas mais lentas",
+          "layout": { "column": 1, "row": 4, "width": 6, "height": 3 },
+          "visualization": { "id": "viz.bar" },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountIds": [0],
+                "query": "SELECT average(responseTime) FROM Log WHERE service = 'oficina-api' AND responseTime IS NOT NULL FACET req.url SINCE 6 hours ago LIMIT 10"
+              }
+            ]
+          }
+        },
+        {
+          "title": "CPU e memória dos pods",
+          "layout": { "column": 7, "row": 4, "width": 6, "height": 3 },
+          "visualization": { "id": "viz.line" },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountIds": [0],
+                "query": "SELECT average(cpuUsedCores) AS 'CPU (cores)', average(memoryWorkingSetBytes) / 1e6 AS 'Memória (MB)' FROM K8sContainerSample WHERE containerName = 'oficina-api' TIMESERIES SINCE 3 hours ago"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

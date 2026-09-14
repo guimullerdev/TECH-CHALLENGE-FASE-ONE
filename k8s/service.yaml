@@ -4,8 +4,26 @@ metadata:
   name: oficina-api
   labels:
     app: oficina-api
+  annotations:
+    # NLB, não o Classic Load Balancer que o EKS cria por padrão para
+    # `type: LoadBalancer`: o VPC Link do API Gateway REST (v1) só aceita
+    # Network Load Balancer como alvo.
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    # Interno: o único cliente é o API Gateway, que chega pelo VPC Link, de
+    # dentro da VPC. Um NLB voltado para a internet exporia a aplicação
+    # diretamente, contornando o Gateway — que é justamente quem centraliza a
+    # porta de entrada.
+    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+    # Os nós estão em 2 AZs e o NLB nasce em 5; sem cross-zone, o tráfego que
+    # cair numa AZ sem nó não tem para onde ir.
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /health
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: HTTP
 spec:
-  type: ClusterIP
+  type: LoadBalancer
+  # Local preservaria o IP de origem, mas exige pod em toda AZ que o NLB
+  # atende — com 2 réplicas em 5 subnets, metade dos health checks falharia.
+  externalTrafficPolicy: Cluster
   selector:
     app: oficina-api
   ports:

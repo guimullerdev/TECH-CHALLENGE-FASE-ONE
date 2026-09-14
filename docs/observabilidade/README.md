@@ -3,34 +3,22 @@
 Dashboard ativo: **https://onenr.io/0qwykVVv1jn**
 
 Definição versionada:
-[`dashboard-newrelic.template.json`](dashboard-newrelic.template.json).
+[`dashboard-newrelic.json`](dashboard-newrelic.json).
 
 ## Como importar
 
-O arquivo é um **template**: os widgets trazem `"accountIds": [ACCOUNT_ID]`,
-que precisa ser substituído pelo id da conta antes de importar. O New Relic
-**não** preenche isso sozinho, e rejeita a importação com
-`'accountId' or 'accountIds' can not contain: 0, null values or strings` se
-o valor não for um número real.
+New Relic → **Dashboards** → **Import dashboard** → colar o conteúdo do
+arquivo. Sem passo intermediário: o `accountId` da conta (`8510401`) já está
+preenchido.
 
-O template é JSON inválido de propósito — assim ele falha na hora de gerar,
-e não depois de colar na interface com uma mensagem obscura.
+O account id não é credencial — ele aparece na URL de qualquer sessão do
+New Relic (`one.newrelic.com/...?account=8510401`) e serve só para
+identificar a conta. Se um dia o dashboard for importado em outra conta, é
+substituir os `"accountIds": [8510401]`.
 
-```bash
-# 1. Descubra o id da conta: aparece na URL do New Relic, em
-#    https://one.newrelic.com/.../accounts/SEU_ID/...
-ACCOUNT_ID=1234567
-
-# 2. Gere o JSON final
-sed "s/\[ACCOUNT_ID\]/[$ACCOUNT_ID]/g" \
-  docs/observabilidade/dashboard-newrelic.template.json > /tmp/dashboard.json
-
-# 3. Confira que ficou válido
-python3 -m json.tool /tmp/dashboard.json > /dev/null && echo OK
-```
-
-3. New Relic → **Dashboards** → **Import dashboard** → colar o conteúdo de
-   `/tmp/dashboard.json`
+> Nota para quem for editar: o New Relic **rejeita** `0`, `null` ou string
+> nesse campo (`[INVALID_INPUT] 'accountId' or 'accountIds' can not
+> contain: 0, null values or strings`). Tem que ser o número da conta.
 
 ## De onde vem cada dado
 

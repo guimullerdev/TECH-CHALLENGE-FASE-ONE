@@ -14,7 +14,7 @@
           "rawConfiguration": {
             "nrqlQueries": [
               {
-                "accountIds": [ACCOUNT_ID],
+                "accountIds": [8510401],
                 "query": "SELECT count(*) AS 'OS abertas' FROM Log WHERE service = 'oficina-api' AND req.method = 'POST' AND req.url = '/os' AND res.statusCode = 201 TIMESERIES 1 day SINCE 30 days ago"
               }
             ]
@@ -27,7 +27,7 @@
           "rawConfiguration": {
             "nrqlQueries": [
               {
-                "accountIds": [ACCOUNT_ID],
+                "accountIds": [8510401],
                 "query": "SELECT average(duracaoSegundos) / 60 AS 'Minutos' FROM Log WHERE event = 'os.status.transicao' FACET statusAnterior SINCE 7 days ago"
               }
             ]
@@ -40,7 +40,7 @@
           "rawConfiguration": {
             "nrqlQueries": [
               {
-                "accountIds": [ACCOUNT_ID],
+                "accountIds": [8510401],
                 "query": "SELECT count(*) FROM Log WHERE event IN ('os.processamento.falha', 'requisicao.falha') FACET event TIMESERIES 1 hour SINCE 24 hours ago"
               }
             ]
@@ -53,7 +53,7 @@
           "rawConfiguration": {
             "nrqlQueries": [
               {
-                "accountIds": [ACCOUNT_ID],
+                "accountIds": [8510401],
                 "query": "SELECT count(*) FROM Log WHERE event = 'os.status.transicao' FACET statusNovo TIMESERIES 1 hour SINCE 24 hours ago"
               }
             ]
@@ -66,7 +66,7 @@
           "rawConfiguration": {
             "nrqlQueries": [
               {
-                "accountIds": [ACCOUNT_ID],
+                "accountIds": [8510401],
                 "query": "SELECT timestamp, correlationId, url, statusCode, `exception.message` FROM Log WHERE event IN ('os.processamento.falha', 'requisicao.falha') LIMIT 50 SINCE 24 hours ago"
               }
             ]
@@ -85,7 +85,7 @@
           "rawConfiguration": {
             "nrqlQueries": [
               {
-                "accountIds": [ACCOUNT_ID],
+                "accountIds": [8510401],
                 "query": "SELECT percentile(duration, 50, 95, 99) FROM Transaction WHERE appName LIKE 'oficina-api%' TIMESERIES SINCE 6 hours ago"
               }
             ]
@@ -98,7 +98,7 @@
           "rawConfiguration": {
             "nrqlQueries": [
               {
-                "accountIds": [ACCOUNT_ID],
+                "accountIds": [8510401],
                 "query": "SELECT count(*) FROM Log WHERE service = 'oficina-api' AND res.statusCode IS NOT NULL FACET res.statusCode TIMESERIES 5 minutes SINCE 3 hours ago"
               }
             ]
@@ -111,7 +111,7 @@
           "rawConfiguration": {
             "nrqlQueries": [
               {
-                "accountIds": [ACCOUNT_ID],
+                "accountIds": [8510401],
                 "query": "SELECT average(responseTime) FROM Log WHERE service = 'oficina-api' AND responseTime IS NOT NULL FACET req.url SINCE 6 hours ago LIMIT 10"
               }
             ]
@@ -124,7 +124,7 @@
           "rawConfiguration": {
             "nrqlQueries": [
               {
-                "accountIds": [ACCOUNT_ID],
+                "accountIds": [8510401],
                 "query": "SELECT average(cpuUsedCores) AS 'CPU (cores)', average(memoryWorkingSetBytes) / 1e6 AS 'Memória (MB)' FROM K8sContainerSample WHERE containerName = 'oficina-api' TIMESERIES SINCE 3 hours ago"
               }
             ]

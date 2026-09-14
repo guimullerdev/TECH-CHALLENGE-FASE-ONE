@@ -20,7 +20,6 @@ import { GetTempoMedioOsUseCase } from '../application/use-cases/get-tempo-medio
 import { ConsultaPublicaOsUseCase } from '../application/use-cases/consulta-publica-os.usecase';
 import { ProcessarWebhookNotificacaoUseCase } from '../application/use-cases/processar-webhook-notificacao.usecase';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { BadRequestException } from '@nestjs/common';
 import { AuthenticatedActor } from '../../auth/decorators/current-user.decorator';
 import { CLIENTE_ROLE, UserRole } from '../../auth/domain/enums/user-role.enum';
 
@@ -184,22 +183,9 @@ describe('ServiceOrdersController', () => {
         expect(getOrcamentoUC.executeByOsId).toHaveBeenCalledWith('os-1');
     });
 
-    it('consulta usa o documento da query quando quem chama é staff', async () => {
-        await controller.consulta(STAFF, 'OS-001', '12345678901');
+    it('consultaPublica delegates to ConsultaPublicaOsUseCase', async () => {
+        await controller.consultaPublica('OS-001', '12345678901');
         expect(consultaPublicaUC.execute).toHaveBeenCalledWith('OS-001', '12345678901');
-    });
-
-    it('consulta ignora o documento da query e usa o do token do cliente', async () => {
-        await controller.consulta(CLIENTE, 'OS-001', '99999999999');
-        expect(consultaPublicaUC.execute).toHaveBeenCalledWith('OS-001', '12345678901');
-    });
-
-    it('consulta exige documento quando staff não informa nenhum', () => {
-        // `consulta` não é async: lança de forma síncrona, então nada de .rejects
-        expect(() => controller.consulta(STAFF, 'OS-001', undefined)).toThrow(
-            BadRequestException,
-        );
-        expect(consultaPublicaUC.execute).not.toHaveBeenCalled();
     });
 
     it('getTempoMedio delegates to GetTempoMedioOsUseCase without dates', async () => {

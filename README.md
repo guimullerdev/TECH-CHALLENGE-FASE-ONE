@@ -199,6 +199,13 @@ autenticação:
 | `GET /health` | Healthcheck consumido pelo Kubernetes e pelo monitoramento |
 | `GET /api` | Swagger |
 | `POST /os/webhook/notificacao` | Integração externa — tem validação própria via `WEBHOOK_SECRET`, não JWT |
+| `GET /os/consulta?numero=&documento=` | Página pública de acompanhamento, no modelo de rastreio de encomenda — ver abaixo |
+
+Sobre a consulta pública: ela exige o **par** número da OS + documento do
+cliente, e o use case só devolve a OS se os dois baterem. É uma decisão de
+produto deliberada (o cliente acompanha o serviço sem precisar de conta),
+com o par funcionando como credencial de baixa fricção — o mesmo modelo de
+um código de rastreio.
 
 **Do cliente (token com `role: CLIENTE`).** Todas restritas ao próprio
 `sub` do token — não há como ver dado de outro cliente trocando um
@@ -207,9 +214,12 @@ parâmetro:
 | Rota | Escopo |
 |---|---|
 | `GET /os/me` | Só as OS do cliente do token |
-| `GET /os/consulta?numero=` | O documento vem do token; o parâmetro de query é ignorado |
 | `GET /os/:id/status` | 404 se a OS não for dele |
 | `GET /os/:id/acompanhamento` | 404 se a OS não for dele |
+
+As duas últimas eram públicas e passaram a exigir token: diferente da
+`/os/consulta`, elas aceitavam **só o UUID**, sem nenhuma conferência de
+dono — quem tivesse o identificador lia a OS de qualquer pessoa.
 
 > O 404 (em vez de 403) é deliberado: responder "existe, mas não é sua"
 > confirmaria a existência da OS para quem não deveria saber.

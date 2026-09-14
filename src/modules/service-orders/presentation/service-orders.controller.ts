@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -143,31 +142,23 @@ export class ServiceOrdersController {
     }
 
     @Get('consulta')
+    @Public()
     @ApiOperation({
-        summary: 'Consulta da OS pelo número',
+        summary: 'Consulta pública da OS pelo cliente (sem autenticação)',
         description:
-            'Para o cliente (token da Lambda por CPF), o documento é lido do próprio token — ' +
-            'o parâmetro de query é ignorado. Para staff, o documento vem da query.',
+            'Pública por design: alimenta a página de acompanhamento, no mesmo modelo de ' +
+            'rastreio de encomenda. Exige o par número da OS + documento do cliente, e o ' +
+            'use case só devolve a OS se os dois baterem.',
     })
     @ApiQuery({ name: 'numero', required: true, description: 'Número da OS' })
-    @ApiQuery({ name: 'documento', required: false, description: 'CPF/CNPJ do cliente. Ignorado quando quem chama é o próprio cliente' })
-    @ApiResponse({ status: 200, description: 'Status e dados da OS' })
+    @ApiQuery({ name: 'documento', required: true, description: 'CPF ou CNPJ do cliente (somente dígitos)' })
+    @ApiResponse({ status: 200, description: 'Status e dados públicos da OS' })
     @ApiResponse({ status: 404, description: 'OS não encontrada ou documento não confere' })
-    consulta(
-        @CurrentUser() actor: AuthenticatedActor,
+    consultaPublica(
         @Query('numero') numero: string,
-        @Query('documento') documento?: string,
+        @Query('documento') documento: string,
     ) {
-        // Cliente só enxerga OS do próprio documento, e esse documento vem
-        // provado pela assinatura do token — não dá para consultar a OS de
-        // outra pessoa trocando o parâmetro.
-        const documentoEfetivo = isCliente(actor) ? actor.documento : documento;
-
-        if (!documentoEfetivo) {
-            throw new BadRequestException('Informe o documento do cliente');
-        }
-
-        return this.consultaPublicaUseCase.execute(numero, documentoEfetivo);
+        return this.consultaPublicaUseCase.execute(numero, documento);
     }
 
     @Get('metricas/tempo-medio')

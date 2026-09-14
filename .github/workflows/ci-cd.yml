@@ -38,7 +38,7 @@ jobs:
   # --- Build da imagem Docker + publicação no GHCR --------------------------
   docker-build-push:
     needs: build-and-test
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -76,7 +76,7 @@ jobs:
   # Ver ADR 0001.
   deploy:
     needs: docker-build-push
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       HAS_AWS: ${{ secrets.AWS_ACCESS_KEY_ID != '' && 'true' || 'false' }}

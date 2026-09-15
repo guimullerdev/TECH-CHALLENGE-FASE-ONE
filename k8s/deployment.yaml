@@ -38,6 +38,12 @@ spec:
             # ambientes aparecem misturados na mesma aplicação.
             - name: NEW_RELIC_APP_NAME
               value: oficina-api-${NAMESPACE}
+            # Expostos pelo /health: permitem confirmar de fora qual ambiente
+            # respondeu e qual build está no ar, sem entrar no cluster.
+            - name: APP_AMBIENTE
+              value: ${NAMESPACE}
+            - name: APP_VERSION
+              value: ${APP_VERSION}
           resources:
             requests:
               cpu: 100m

@@ -86,6 +86,8 @@ jobs:
     env:
       HAS_AWS: ${{ secrets.AWS_ACCESS_KEY_ID != '' && 'true' || 'false' }}
       APP_IMAGE: ${{ needs.docker-build-push.outputs.image }}
+      # SHA curto do commit, injetado no pod e devolvido pelo /health.
+      APP_VERSION: ${{ github.sha }}
       # Branch decide o ambiente (ADR 0002): develop → homolog, main → prod.
       NAMESPACE: ${{ github.ref == 'refs/heads/main' && 'prod' || 'homolog' }}
     steps:

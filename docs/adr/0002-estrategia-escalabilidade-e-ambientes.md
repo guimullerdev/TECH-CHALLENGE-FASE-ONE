@@ -31,10 +31,17 @@ EKS, 1 instância RDS:
   lógicos (`oficina_homolog`, `oficina_prod`) na mesma instância;
   `DATABASE_URL` de cada ambiente muda só o nome do database no output do
   Terraform.
-- **`oficina-auth-lambda`**: duas Lambda aliases (`homolog`/`prod`) com
-  variável de ambiente apontando para o database/API correto; API Gateway
-  com dois stages (`/homolog`, `/prod`), cada um invocando seu alias —
-  nativo e sem custo ocioso adicional (Lambda não cobra por tempo parado).
+- **`oficina-auth-lambda`**: duas Lambda aliases (`homolog`/`prod`); API
+  Gateway com dois stages (`/homolog`, `/prod`), cada um invocando seu alias
+  — nativo e sem custo ocioso adicional (Lambda não cobra por tempo parado).
+
+  > **Correção (2026-09-14)**: esta ADR dizia que cada alias teria "variável
+  > de ambiente apontando para o database correto". Isso não é possível:
+  > variável de ambiente no Lambda pertence à **versão publicada**, não ao
+  > alias, e os dois aliases apontam para a mesma versão. Na prática
+  > `/homolog/auth/cpf` respondia com dados de produção. A função passou a
+  > receber `DATABASE_URL_HOMOLOG` e `DATABASE_URL_PROD` e a escolher pelo
+  > alias lido de `context.invokedFunctionArn`.
 - **Branch → ambiente**: PR/merge em `develop` (ou branch de homolog)
   dispara `terraform apply`/deploy no namespace/alias de homolog; merge em
   `main` dispara o de produção.

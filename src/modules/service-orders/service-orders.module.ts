@@ -1,3 +1,4 @@
+import { OsStatusMetrics } from './application/os-status-metrics.service';
 import { Module } from '@nestjs/common';
 
 import { PrismaModule } from 'src/prisma/prisma.module';
@@ -47,6 +48,7 @@ import { OrcamentoPrismaRepository } from '../orcamentos/infrastructure/reposito
     imports: [PrismaModule, ServicesModule, PartsModule, EstoqueModule, VehiclesModule, CustomersModule],
     controllers: [ServiceOrdersController],
     providers: [
+        OsStatusMetrics,
         CreateOrdemDeServicoUseCase,
         GetOrdemDeServicoUseCase,
         UpdateOrdemDeServicoUseCase,

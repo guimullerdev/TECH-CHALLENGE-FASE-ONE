@@ -4,6 +4,7 @@ import { ORCAMENTO_REPOSITORY, IOrcamentoRepository } from '../../domain/reposit
 import { ORDEM_DE_SERVICO_REPOSITORY, IOrdemDeServicoRepository } from '../../../service-orders/domain/repositories/service-orders.repository.interface';
 import { Orcamento, OrcamentoTransitionError } from '../../domain/entities/orcamento.entity';
 import { InvalidTransitionError } from '../../../service-orders/domain/entities/service-orders.entity';
+import { OsStatusMetrics } from '../../../service-orders/application/os-status-metrics.service';
 
 @Injectable()
 export class AprovarOrcamentoUseCase {
@@ -12,6 +13,7 @@ export class AprovarOrcamentoUseCase {
         private readonly orcRepo: IOrcamentoRepository,
         @Inject(ORDEM_DE_SERVICO_REPOSITORY)
         private readonly osRepo: IOrdemDeServicoRepository,
+        private readonly metrics: OsStatusMetrics,
     ) {}
 
     async execute(id: string, observacoes?: string): Promise<Orcamento> {
@@ -31,6 +33,9 @@ export class AprovarOrcamentoUseCase {
             try {
                 const updatedOs = os.aprovarOrcamento();
                 await this.osRepo.update(updatedOs);
+                // O interceptor do controller de OS não alcança este caminho:
+                // a transição AGUARDANDO_APROVACAO → APROVADA nasce aqui.
+                this.metrics.registrarTransicao(updatedOs);
             } catch (err) {
                 if (err instanceof InvalidTransitionError) throw new UnprocessableEntityException(err.message);
                 throw err;

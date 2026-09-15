@@ -12,6 +12,7 @@ import { GerarOrcamentoUseCase } from './application/use-cases/gerar-orcamento.u
 import { EnviarOrcamentoUseCase } from './application/use-cases/enviar-orcamento.usecase';
 import { AprovarOrcamentoUseCase } from './application/use-cases/aprovar-orcamento.usecase';
 import { ReprovarOrcamentoUseCase } from './application/use-cases/reprovar-orcamento.usecase';
+import { OsStatusMetrics } from '../service-orders/application/os-status-metrics.service';
 
 @Module({
     imports: [PrismaModule, EstoqueModule],
@@ -22,6 +23,9 @@ import { ReprovarOrcamentoUseCase } from './application/use-cases/reprovar-orcam
         EnviarOrcamentoUseCase,
         AprovarOrcamentoUseCase,
         ReprovarOrcamentoUseCase,
+        // Aprovar/reprovar move a OS, e essa transição não passa pelo
+        // controller de ordens de serviço — então a métrica sai daqui.
+        OsStatusMetrics,
         {
             provide: ORCAMENTO_REPOSITORY,
             useClass: OrcamentoPrismaRepository,

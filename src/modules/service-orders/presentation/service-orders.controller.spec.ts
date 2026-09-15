@@ -21,6 +21,7 @@ import { ConsultaPublicaOsUseCase } from '../application/use-cases/consulta-publ
 import { ProcessarWebhookNotificacaoUseCase } from '../application/use-cases/processar-webhook-notificacao.usecase';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PinoLogger } from 'nestjs-pino';
+import { OsStatusMetrics } from '../application/os-status-metrics.service';
 import { AuthenticatedActor } from '../../auth/decorators/current-user.decorator';
 import { CLIENTE_ROLE, UserRole } from '../../auth/domain/enums/user-role.enum';
 
@@ -96,6 +97,10 @@ describe('ServiceOrdersController', () => {
                 { provide: ProcessarWebhookNotificacaoUseCase, useValue: processarWebhookUC },
                 // Exigido pelo OsStatusMetricsInterceptor aplicado ao controller.
                 { provide: PinoLogger, useValue: { info: jest.fn(), error: jest.fn() } },
+                // O interceptor passou a depender do serviço de métrica, e não
+                // mais do logger direto — a emissão é compartilhada com os use
+                // cases de orçamento, que transicionam a OS fora deste controller.
+                { provide: OsStatusMetrics, useValue: { registrarTransicao: jest.fn() } },
             ],
         })
             .overrideGuard(JwtAuthGuard)

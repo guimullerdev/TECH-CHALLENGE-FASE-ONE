@@ -64,5 +64,6 @@ custo de infraestrutura ociosa num projeto de curso.
 ## Referências
 
 - `13SOAT - Fase 3 - Tech Challenge.pdf`
-- `plan.md`, seção Fase 0 e Fase 2
-- `TECH-CHALLENGE-FASE-ONE/prisma/`
+- ADR 0005 — onde rodam as migrations do Prisma
+- Diagrama ER: `docs/diagrams/0004-diagrama-er.md`
+- `prisma/schema.prisma`

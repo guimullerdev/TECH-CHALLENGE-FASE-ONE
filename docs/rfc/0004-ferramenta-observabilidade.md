@@ -70,5 +70,6 @@ complexidade operacional de uma stack auto-hospedada.
 ## Referências
 
 - `13SOAT - Fase 3 - Tech Challenge.pdf`
-- `plan.md`, seção Fase 0 e Fase 7
+- ADR 0004 — organização dos logs e traces
+- `docs/observabilidade/` — dashboard versionado
 - `TECH-CHALLENGE-FASE-ONE/docs/plano-fase3.md`

@@ -1,16 +1,71 @@
-# Oficina Mecânica API — Tech Challenge Fase 2
+# Oficina Mecânica API — Tech Challenge Fase 3
 
 API REST de gestão de uma oficina mecânica: ordens de serviço (OS), clientes,
-veículos, serviços, peças/estoque e orçamentos. Esta é a evolução da Fase 1,
-focada em **qualidade, resiliência e escalabilidade** com práticas modernas de
-infraestrutura e automação.
+veículos, serviços, peças/estoque e orçamentos. Evolução das fases anteriores,
+agora rodando em **infraestrutura real na AWS**, com autenticação de cliente
+por CPF via função serverless, deploy automatizado em Kubernetes e
+observabilidade ponta a ponta.
 
-**Stack:** NestJS · Prisma 7 · PostgreSQL · Docker · Kubernetes (kind) ·
-Terraform · GitHub Actions
+**Stack:** NestJS · Prisma 7 · PostgreSQL (RDS) · Docker · Kubernetes (EKS) ·
+AWS API Gateway · AWS Lambda · Terraform · GitHub Actions · New Relic
+
+Este é um dos **4 repositórios** da Fase 3:
+
+| Repositório | Papel |
+|---|---|
+| **`TECH-CHALLENGE-FASE-ONE`** (aqui) | aplicação, manifestos Kubernetes e pipeline de deploy |
+| [`oficina-auth-lambda`](https://github.com/guimullerdev/oficina-auth-lambda) | função serverless de autenticação por CPF |
+| [`oficina-infra-k8s`](https://github.com/guimullerdev/oficina-infra-k8s) | cluster EKS, API Gateway e observabilidade |
+| [`oficina-infra-db`](https://github.com/guimullerdev/oficina-infra-db) | banco de dados gerenciado (RDS) |
 
 ---
 
-## Objetivos da Fase 2
+## Deploy ativo
+
+A aplicação é alcançada **pelo API Gateway**, não diretamente: o `Service` no
+cluster é um NLB interno, sem exposição à internet (ver ADR 0006).
+
+| Ambiente | Endpoint |
+|---|---|
+| Produção | https://7eu2kz40xj.execute-api.us-east-1.amazonaws.com/prod |
+| Homologação | https://7eu2kz40xj.execute-api.us-east-1.amazonaws.com/homolog |
+
+- **Swagger**: https://7eu2kz40xj.execute-api.us-east-1.amazonaws.com/prod/api
+- **Healthcheck**: https://7eu2kz40xj.execute-api.us-east-1.amazonaws.com/prod/health
+- **Dashboard de observabilidade**: https://onenr.io/0qwykVVv1jn
+
+Exemplo de ponta a ponta — CPF vira JWT, JWT abre as rotas do cliente:
+
+```bash
+BASE=https://7eu2kz40xj.execute-api.us-east-1.amazonaws.com/prod
+
+TOKEN=$(curl -s -X POST "$BASE/auth/cpf" \
+  -H 'content-type: application/json' \
+  -d '{"cpf":"69759054876"}' | jq -r .accessToken)
+
+curl -s "$BASE/os/me" -H "authorization: Bearer $TOKEN"
+```
+
+> Infraestrutura de curso, provisionada para a avaliação e destruída depois.
+> Se os endpoints não responderem, é porque o `terraform destroy` já rodou —
+> todo o provisionamento está versionado nos repositórios de infraestrutura.
+
+---
+
+## Objetivos da Fase 3
+
+- **Autenticação de cliente por CPF** via função serverless, com JWT aceito
+  pela mesma API que já autentica o staff por e-mail/senha — dois atores
+  distintos convivendo (ver RFC 0003).
+- **Infraestrutura gerenciada na AWS**: EKS para o cluster, RDS para o banco,
+  Lambda para a autenticação e API Gateway como porta de entrada única.
+- **Deploy automatizado por branch**: `main` → namespace `prod`,
+  `develop` → namespace `homolog`, cada um com seu próprio banco.
+- **Observabilidade**: logs estruturados em JSON com correlation-id,
+  distributed tracing, dashboards, alertas e monitoramento externo de uptime.
+- **Documentação arquitetural**: RFCs, ADRs e diagramas em [`docs/`](docs/).
+
+### Objetivos da Fase 2 (histórico)
 
 - **Refatoração** aplicando Clean Architecture (camadas
   `domain` / `application` / `infrastructure` / `presentation` por módulo) e
@@ -352,8 +407,13 @@ perfil específico, por exemplo:
 
 ## Vídeo demonstrativo
 
-> _https://www.youtube.com/watch?v=FO_1gfI67RU_ — link do vídeo no YouTube/Vimeo demonstrando deploy da
-> aplicação, execução do CI/CD, consumo das APIs e escalabilidade automática.
+**Fase 3**: _(a publicar)_ — autenticação por CPF, geração e uso do JWT,
+execução da pipeline, deploy automatizado, consumo das APIs protegidas,
+dashboard com análise ao vivo, logs estruturados, correlação entre
+componentes e traces.
+
+**Fase 2**: https://www.youtube.com/watch?v=FO_1gfI67RU — deploy da
+aplicação, execução do CI/CD, consumo das APIs e escalabilidade automática.
 
 ---
 

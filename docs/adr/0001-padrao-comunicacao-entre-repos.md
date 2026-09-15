@@ -59,10 +59,10 @@ pipeline.
    pipeline/ambiente em cada repo (não versionado).
 5. **Granularidade**: só 4 repositórios git. VPC entra como módulo
    Terraform dentro de `oficina-infra-k8s` (o cluster depende da rede, não
-   faz sentido separar em pipeline próprio); API Gateway ainda não tem ADR
-   própria — fica para a Fase 6 do `plan.md`, quando o Gateway for
-   provisionado (dentro de `oficina-infra-k8s` ou `oficina-infra-db`,
-   dependendo do que for mais simples na hora).
+   faz sentido separar em pipeline próprio); o API Gateway ficou no mesmo
+   repositório, como raiz Terraform separada (`api-gateway/`) com state
+   próprio — ver ADR 0006 para o porquê de morar ali e não virar um quinto
+   repositório.
 
 ## Consequências
 

@@ -81,6 +81,6 @@ coexistem, não são exclusivos — `User` (staff:
 ## Referências
 
 - `13SOAT - Fase 3 - Tech Challenge.pdf`
-- `plan.md`, seção Fase 0
+- Diagrama de sequência: `docs/diagrams/0002-sequencia-autenticacao-cpf.md`
 - `TECH-CHALLENGE-FASE-ONE/src/modules/customers/domain/entities/customers.entity.ts`
 - `TECH-CHALLENGE-FASE-ONE/src/modules/auth/domain/enums/user-role.enum.ts`

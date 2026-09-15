@@ -46,6 +46,13 @@ COPY --from=builder /app/package.json ./
 # gerenciado (ver src/prisma/pg-connection.ts).
 COPY --from=builder /app/certs ./certs
 
+# Config do agente New Relic. Sem este arquivo o agente sobe assim mesmo, lendo
+# só as variáveis de ambiente e registrando "Unable to find configuration
+# file" — e aí a exclusão de headers sensíveis, o distributed tracing e o
+# encaminhamento de logs passam a depender dos defaults do agente em vez do
+# que está versionado aqui (ADR 0004).
+COPY --from=builder /app/newrelic.cjs ./
+
 COPY entrypoint.sh /entrypoint.sh
 RUN dos2unix /entrypoint.sh && chmod +x /entrypoint.sh
 

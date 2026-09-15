@@ -57,9 +57,8 @@ pede.
 
 - Todas as RFCs/ADRs seguintes assumem AWS (API Gateway, EKS, Lambda, RDS).
 - Custo: projeto fica sujeito aos free tiers/menor tier pago de cada serviço
-  AWS (EKS control plane não entra em free tier — ver
-  [[0003-organizacao-ambientes]] no plan.md sobre 1 cluster único para
-  mitigar custo).
+  AWS (EKS control plane não entra em free tier — ver ADR 0002 sobre o
+  cluster único para mitigar custo).
 - Trabalho futuro: criar/configurar conta AWS, IAM roles para CI/CD
   (GitHub Actions → AWS via OIDC ou access keys), backend do Terraform em
   S3+DynamoDB (ver ADR de comunicação entre repos / infraestrutura).
@@ -67,4 +66,4 @@ pede.
 ## Referências
 
 - `13SOAT - Fase 3 - Tech Challenge.pdf`
-- `plan.md`, seção Fase 0
+- ADR 0002 — escalabilidade e separação de ambientes

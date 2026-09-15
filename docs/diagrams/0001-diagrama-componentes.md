@@ -2,7 +2,7 @@
 
 > Cobre os 6 elementos exigidos pelo comunicado oficial da Fase 3: nuvem,
 > APIs, banco de dados, Kubernetes, Function Serverless, ferramentas de
-> monitoramento. Baseado nas decisões de `plan.md` (Fase 0) e nas RFCs/ADRs
+> monitoramento. Baseado nas decisões registradas nas RFCs e ADRs
 > em `docs/rfc/` e `docs/adr/`.
 
 ```mermaid

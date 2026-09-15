@@ -111,6 +111,13 @@ describe('EnviarOrcamentoUseCase', () => {
     });
 });
 
+// Aprovar e reprovar movem a OS, e essa transição não passa pelo controller
+// de ordens de serviço — então o use case emite a métrica direto. O stub
+// deixa isso observável nos testes.
+const metrics = { registrarTransicao: jest.fn() };
+
+beforeEach(() => metrics.registrarTransicao.mockClear());
+
 // ─── AprovarOrcamentoUseCase ─────────────────────────────────────────────────
 describe('AprovarOrcamentoUseCase', () => {
     it('approves orcamento from ENVIADO', async () => {
@@ -121,7 +128,7 @@ describe('AprovarOrcamentoUseCase', () => {
         osRepo.update.mockImplementation(async (o) => o);
         orcRepo.update.mockImplementation(async (o) => o);
 
-        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any);
+        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any, metrics as any);
         const result = await useCase.execute('orc-1');
 
         expect(result.status).toBe(StatusOrcamento.APROVADO);
@@ -135,7 +142,7 @@ describe('AprovarOrcamentoUseCase', () => {
         osRepo.findById.mockResolvedValue(null);
         orcRepo.update.mockImplementation(async (o) => o);
 
-        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any);
+        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any, metrics as any);
         const result = await useCase.execute('orc-1');
 
         expect(result.status).toBe(StatusOrcamento.APROVADO);
@@ -147,7 +154,7 @@ describe('AprovarOrcamentoUseCase', () => {
         const osRepo = mockOsRepo();
         orcRepo.findById.mockResolvedValue(null);
 
-        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any);
+        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any, metrics as any);
         await expect(useCase.execute('missing')).rejects.toThrow(NotFoundException);
     });
 
@@ -156,7 +163,7 @@ describe('AprovarOrcamentoUseCase', () => {
         const osRepo = mockOsRepo();
         orcRepo.findById.mockResolvedValue(makeOrcamento(StatusOrcamento.REPROVADO));
 
-        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any);
+        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any, metrics as any);
         await expect(useCase.execute('orc-1')).rejects.toThrow(UnprocessableEntityException);
     });
 
@@ -167,7 +174,7 @@ describe('AprovarOrcamentoUseCase', () => {
         jest.spyOn(orc, 'aprovar').mockImplementation(() => { throw new Error('unexpected-aprovar'); });
         orcRepo.findById.mockResolvedValue(orc);
 
-        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any);
+        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any, metrics as any);
         await expect(useCase.execute('orc-1')).rejects.toThrow('unexpected-aprovar');
     });
 
@@ -180,7 +187,7 @@ describe('AprovarOrcamentoUseCase', () => {
         jest.spyOn(os, 'aprovarOrcamento').mockImplementation(() => { throw new Error('unexpected-os-aprovar'); });
         osRepo.findById.mockResolvedValue(os);
 
-        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any);
+        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any, metrics as any);
         await expect(useCase.execute('orc-1')).rejects.toThrow('unexpected-os-aprovar');
     });
 
@@ -193,8 +200,40 @@ describe('AprovarOrcamentoUseCase', () => {
         jest.spyOn(os, 'aprovarOrcamento').mockImplementation(() => { throw new InvalidTransitionError('bad transition'); });
         osRepo.findById.mockResolvedValue(os);
 
-        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any);
+        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any, metrics as any);
         await expect(useCase.execute('orc-1')).rejects.toThrow(UnprocessableEntityException);
+    });
+    // Enquanto a emissão viveu só no interceptor do controller de OS, esta
+    // transição não gerava evento: o painel "tempo médio por status" nunca
+    // mostrava quanto tempo a OS ficou em AGUARDANDO_APROVACAO, justamente o
+    // intervalo em que o cliente está decidindo.
+    it('emite a métrica de transição ao aprovar', async () => {
+        const orcRepo = mockOrcRepo();
+        const osRepo = mockOsRepo();
+        orcRepo.findById.mockResolvedValue(makeOrcamento(StatusOrcamento.ENVIADO));
+        osRepo.findById.mockResolvedValue(makeOs(StatusOS.AGUARDANDO_APROVACAO));
+        osRepo.update.mockImplementation(async (o) => o);
+        orcRepo.update.mockImplementation(async (o) => o);
+
+        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any, metrics as any);
+        await useCase.execute('orc-1');
+
+        expect(metrics.registrarTransicao).toHaveBeenCalledTimes(1);
+        const os = metrics.registrarTransicao.mock.calls[0][0];
+        expect(os.status).toBe(StatusOS.APROVADA);
+    });
+
+    it('não emite métrica quando a OS não existe', async () => {
+        const orcRepo = mockOrcRepo();
+        const osRepo = mockOsRepo();
+        orcRepo.findById.mockResolvedValue(makeOrcamento(StatusOrcamento.ENVIADO));
+        osRepo.findById.mockResolvedValue(null);
+        orcRepo.update.mockImplementation(async (o) => o);
+
+        const useCase = new AprovarOrcamentoUseCase(orcRepo as any, osRepo as any, metrics as any);
+        await useCase.execute('orc-1');
+
+        expect(metrics.registrarTransicao).not.toHaveBeenCalled();
     });
 });
 
@@ -209,7 +248,7 @@ describe('ReprovarOrcamentoUseCase', () => {
         osRepo.update.mockImplementation(async (o) => o);
         orcRepo.update.mockImplementation(async (o) => o);
 
-        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar);
+        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar, metrics as any);
         const result = await useCase.execute('orc-1');
 
         expect(result.status).toBe(StatusOrcamento.REPROVADO);
@@ -221,7 +260,7 @@ describe('ReprovarOrcamentoUseCase', () => {
         const liberar = mockLiberarReserva();
         orcRepo.findById.mockResolvedValue(null);
 
-        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar);
+        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar, metrics as any);
         await expect(useCase.execute('missing')).rejects.toThrow(NotFoundException);
     });
 
@@ -231,7 +270,7 @@ describe('ReprovarOrcamentoUseCase', () => {
         const liberar = mockLiberarReserva();
         orcRepo.findById.mockResolvedValue(makeOrcamento(StatusOrcamento.APROVADO));
 
-        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar);
+        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar, metrics as any);
         await expect(useCase.execute('orc-1')).rejects.toThrow(UnprocessableEntityException);
     });
 
@@ -243,7 +282,7 @@ describe('ReprovarOrcamentoUseCase', () => {
         osRepo.findById.mockResolvedValue(null);
         orcRepo.update.mockImplementation(async (o) => o);
 
-        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar);
+        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar, metrics as any);
         const result = await useCase.execute('orc-1');
 
         expect(result.status).toBe(StatusOrcamento.REPROVADO);
@@ -273,7 +312,7 @@ describe('ReprovarOrcamentoUseCase', () => {
         osRepo.update.mockImplementation(async (o) => o);
         orcRepo.update.mockImplementation(async (o) => o);
 
-        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar);
+        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar, metrics as any);
         await useCase.execute('orc-1');
 
         expect(liberar.execute).toHaveBeenCalledTimes(1);
@@ -287,7 +326,7 @@ describe('ReprovarOrcamentoUseCase', () => {
         jest.spyOn(orc, 'reprovar').mockImplementation(() => { throw new Error('unexpected-reprovar'); });
         orcRepo.findById.mockResolvedValue(orc);
 
-        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar);
+        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar, metrics as any);
         await expect(useCase.execute('orc-1')).rejects.toThrow('unexpected-reprovar');
     });
 
@@ -300,7 +339,7 @@ describe('ReprovarOrcamentoUseCase', () => {
         jest.spyOn(os, 'reprovarOrcamento').mockImplementation(() => { throw new Error('unexpected-os-reprovar'); });
         osRepo.findById.mockResolvedValue(os);
 
-        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar);
+        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar, metrics as any);
         await expect(useCase.execute('orc-1')).rejects.toThrow('unexpected-os-reprovar');
     });
 
@@ -313,7 +352,7 @@ describe('ReprovarOrcamentoUseCase', () => {
         jest.spyOn(os, 'reprovarOrcamento').mockImplementation(() => { throw new InvalidTransitionError('bad transition'); });
         osRepo.findById.mockResolvedValue(os);
 
-        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar);
+        const useCase = new ReprovarOrcamentoUseCase(orcRepo as any, osRepo as any, liberar, metrics as any);
         await expect(useCase.execute('orc-1')).rejects.toThrow(UnprocessableEntityException);
     });
 });

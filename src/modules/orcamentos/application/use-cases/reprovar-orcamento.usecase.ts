@@ -4,6 +4,7 @@ import { ORCAMENTO_REPOSITORY, IOrcamentoRepository } from '../../domain/reposit
 import { ORDEM_DE_SERVICO_REPOSITORY, IOrdemDeServicoRepository } from '../../../service-orders/domain/repositories/service-orders.repository.interface';
 import { LiberarReservaUseCase } from '../../../estoque/application/use-cases/liberar-reserva.usecase';
 import { Orcamento, OrcamentoTransitionError } from '../../domain/entities/orcamento.entity';
+import { OsStatusMetrics } from '../../../service-orders/application/os-status-metrics.service';
 import { InvalidTransitionError } from '../../../service-orders/domain/entities/service-orders.entity';
 
 @Injectable()
@@ -14,6 +15,7 @@ export class ReprovarOrcamentoUseCase {
         @Inject(ORDEM_DE_SERVICO_REPOSITORY)
         private readonly osRepo: IOrdemDeServicoRepository,
         private readonly liberarReservaUseCase: LiberarReservaUseCase,
+        private readonly metrics: OsStatusMetrics,
     ) {}
 
     async execute(id: string, observacoes?: string): Promise<Orcamento> {
@@ -33,6 +35,10 @@ export class ReprovarOrcamentoUseCase {
             try {
                 const updatedOs = os.reprovarOrcamento();
                 await this.osRepo.update(updatedOs);
+                // Mesma razão do fluxo de aprovação: a transição
+                // AGUARDANDO_APROVACAO → REPROVADA nasce fora do controller
+                // de OS, então o interceptor não a vê.
+                this.metrics.registrarTransicao(updatedOs);
 
                 // Liberar reservas de todas as peças da OS
                 for (const peca of os.pecas) {

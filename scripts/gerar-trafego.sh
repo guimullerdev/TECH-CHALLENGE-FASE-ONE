@@ -101,7 +101,22 @@ for i in $(seq 1 "$CICLOS"); do
       sleep 3
       printf 'conclui=%s  ' "$(chamar PATCH "/os/$OS_NOVA/concluir-diagnostico" "$TOKEN_STAFF")"
       sleep 2
-      printf 'execucao=%s\n' "$(chamar PATCH "/os/$OS_NOVA/iniciar-execucao" "$TOKEN_STAFF")"
+
+      # Concluir o diagnóstico gera o orçamento e deixa a OS em
+      # AGUARDANDO_APROVACAO. Sem aprovar, `iniciar-execucao` responde 422 —
+      # é o domínio recusando pular a aprovação do cliente, não um erro.
+      ORCAMENTO=$(curl -s "$BASE_URL/orcamentos/by-os/$OS_NOVA" \
+        -H "authorization: Bearer $TOKEN_STAFF" | json id)
+
+      if [ -n "$ORCAMENTO" ]; then
+        printf 'aprova=%s  ' "$(chamar PATCH "/orcamentos/$ORCAMENTO/aprovar" "$TOKEN_STAFF")"
+        sleep 2
+        printf 'execucao=%s  ' "$(chamar PATCH "/os/$OS_NOVA/iniciar-execucao" "$TOKEN_STAFF")"
+        sleep 2
+        printf 'finaliza=%s\n' "$(chamar PATCH "/os/$OS_NOVA/finalizar-execucao" "$TOKEN_STAFF")"
+      else
+        printf 'sem orçamento — pulando execução\n'
+      fi
     else
       echo "  !! abertura de OS não retornou id"
     fi

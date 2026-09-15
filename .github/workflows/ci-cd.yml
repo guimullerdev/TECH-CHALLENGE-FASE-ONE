@@ -78,6 +78,11 @@ jobs:
     needs: docker-build-push
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    # O environment do GitHub é o que faz `secrets.DATABASE_URL` resolver para
+    # o banco certo: secret de environment tem precedência sobre o do
+    # repositório. Sem isso, os dois namespaces receberiam a mesma
+    # connection string — homologação escrevendo em produção.
+    environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'homolog' }}
     env:
       HAS_AWS: ${{ secrets.AWS_ACCESS_KEY_ID != '' && 'true' || 'false' }}
       APP_IMAGE: ${{ needs.docker-build-push.outputs.image }}
@@ -104,6 +109,26 @@ jobs:
       - name: Configurar kubeconfig
         if: env.HAS_AWS == 'true'
         run: aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
+
+      # Trava contra o erro de apontar um ambiente para o banco do outro. Só
+      # o nome do database é comparado, e nada derivado do secret é impresso:
+      # a mensagem de erro diz o que era esperado, não o que veio.
+      - name: Conferir se DATABASE_URL é a do ambiente
+        if: env.HAS_AWS == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL não configurada para o environment '$NAMESPACE'."
+            exit 1
+          fi
+
+          DB_NAME=$(node -e 'process.stdout.write(new URL(process.env.DATABASE_URL).pathname.slice(1))')
+          if [ "$DB_NAME" != "oficina_${NAMESPACE}" ]; then
+            echo "::error::DATABASE_URL do environment '$NAMESPACE' não aponta para 'oficina_${NAMESPACE}'. Confira o secret desse environment."
+            exit 1
+          fi
+          echo "DATABASE_URL confere com o ambiente $NAMESPACE."
 
       # O Secret é criado a partir dos secrets do repositório, nunca de um
       # arquivo versionado (ver ADR 0001). DATABASE_URL vem do output de

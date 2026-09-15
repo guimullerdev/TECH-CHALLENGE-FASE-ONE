@@ -133,18 +133,27 @@ O pipeline deste repo, depois de publicar a imagem:
 
 1. `aws eks update-kubeconfig` — autentica no cluster provisionado pelo
    `oficina-infra-k8s`
-2. Cria o `Secret` a partir dos secrets do repositório (`DATABASE_URL`,
+2. Confere se a `DATABASE_URL` resolvida é a do ambiente sendo deployado e
+   **aborta se não for** — trava contra apontar homologação para o banco de
+   produção
+3. Cria o `Secret` a partir dos secrets do environment (`DATABASE_URL`,
    `JWT_SECRET`, …) — nunca de arquivo versionado
-3. Aplica `ConfigMap` e `Service`
-4. Aplica o **Job de migration e espera terminar** — se o schema falhar, o
+4. Aplica `ConfigMap` e `Service`
+5. Aplica o **Job de migration e espera terminar** — se o schema falhar, o
    rollout é abortado e a versão nova nunca sobe contra um banco
    desatualizado (ADR 0005)
-5. Só então aplica `Deployment` e `HPA`, e aguarda o rollout
+6. Só então aplica `Deployment` e `HPA`, e aguarda o rollout
 
 A branch decide o ambiente: `develop` → namespace `homolog`, `main` →
 namespace `prod` (ADR 0002). A imagem é sempre a tag do **SHA** do commit,
 nunca `latest`, para o rollout apontar exatamente para o que aquele build
 produziu.
+
+Cada ambiente é um **GitHub Environment** (`homolog` e `prod`) com seus
+próprios secrets. É isso que faz `secrets.DATABASE_URL` resolver para o banco
+certo: secret de environment tem precedência sobre o do repositório. Sem os
+environments configurados, os dois namespaces receberiam a mesma connection
+string — e é justamente por isso que o passo 2 existe.
 
 ### Manifestos (`k8s/`)
 
